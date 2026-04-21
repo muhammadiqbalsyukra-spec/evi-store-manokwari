@@ -17,34 +17,65 @@ header {
   background: linear-gradient(135deg, #ff6600, #ff9900);
   color: white;
   text-align: center;
-  padding: 25px;
-}
-
-/* KERANJANG */
-#cart {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: white;
-  padding: 10px 15px;
-  border-radius: 20px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  font-weight: bold;
-}
-
-/* GRID PRODUK */
-.container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
-  gap: 20px;
   padding: 20px;
 }
 
-/* CARD */
+/* ICON KERANJANG */
+#cart-icon {
+  position: fixed;
+  top: 15px;
+  right: 20px;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+#cart-count {
+  background: red;
+  color: white;
+  padding: 3px 7px;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+/* POPUP CART */
+#cart-popup {
+  position: fixed;
+  right: 20px;
+  top: 60px;
+  width: 300px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  display: none;
+  padding: 15px;
+}
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.cart-item button {
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* PRODUK GRID */
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap: 15px;
+  padding: 20px;
+}
+
 .card {
   background: white;
-  border-radius: 15px;
-  box-shadow: 0 5px 12px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   overflow: hidden;
   transition: 0.3s;
 }
@@ -55,12 +86,13 @@ header {
 
 .card img {
   width: 100%;
-  height: 180px;
+  height: 150px;
   object-fit: cover;
 }
 
 .card h3 {
   margin: 10px;
+  font-size: 14px;
 }
 
 .card p {
@@ -69,51 +101,55 @@ header {
   font-weight: bold;
 }
 
-/* BUTTON */
 .card button {
   margin: 10px;
-  padding: 10px;
+  padding: 8px;
   width: 90%;
   border: none;
   background: #25D366;
   color: white;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
 /* CHECKOUT */
 .checkout {
   text-align: center;
-  margin: 20px;
+  margin-top: 10px;
 }
 
 .checkout button {
-  padding: 15px;
+  width: 100%;
+  padding: 10px;
   background: #ff6600;
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 16px;
-}
-
-/* SECTION */
-section {
-  padding: 20px;
-  text-align: center;
+  border-radius: 6px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- KERANJANG -->
-<div id="cart">
-🛒 <span id="cart-count">0</span> | Rp <span id="total">0</span>
+<!-- ICON CART -->
+<div id="cart-icon" onclick="toggleCart()">
+🛒 <span id="cart-count">0</span>
+</div>
+
+<!-- POPUP CART -->
+<div id="cart-popup">
+  <h3>Keranjang</h3>
+  <div id="cart-items"></div>
+  <p>Total: Rp <span id="total">0</span></p>
+  
+  <div class="checkout">
+    <button onclick="checkout()">Checkout</button>
+  </div>
 </div>
 
 <header>
   <h1>EVI STORE MANOKWARI</h1>
-  <p>Produk Homecare Berkualitas & Harga Terjangkau</p>
+  <p>Produk Homecare Berkualitas</p>
 </header>
 
 <h2 style="text-align:center;">Produk Kami</h2>
@@ -121,104 +157,80 @@ section {
 <div class="container">
 
 <!-- PRODUK -->
+<script>
+const products = [
+["Sabun Homecare",25000],
+["Detergen Cair",35000],
+["Pembersih Lantai",30000],
+["Sabun Cuci Piring",10000],
+["Deterjen Ekonomis",20000],
+["Pewangi Laundry",25000],
+["Pembersih Lantai Hemat",15000]
+];
+
+document.write(products.map(p=>`
 <div class="card">
 <img src="https://via.placeholder.com/200">
-<h3>Sabun Homecare</h3>
-<p>Rp 25.000</p>
-<button onclick="addToCart('Sabun Homecare',25000)">Beli</button>
+<h3>${p[0]}</h3>
+<p>Rp ${p[1]}</p>
+<button onclick="addToCart('${p[0]}',${p[1]})">+ Keranjang</button>
 </div>
-
-<div class="card">
-<img src="https://via.placeholder.com/200">
-<h3>Detergen Cair</h3>
-<p>Rp 35.000</p>
-<button onclick="addToCart('Detergen Cair',35000)">Beli</button>
-</div>
-
-<div class="card">
-<img src="https://via.placeholder.com/200">
-<h3>Pembersih Lantai</h3>
-<p>Rp 30.000</p>
-<button onclick="addToCart('Pembersih Lantai',30000)">Beli</button>
-</div>
-
-<div class="card">
-<img src="https://via.placeholder.com/200">
-<h3>Sabun Cuci Piring</h3>
-<p>Rp 10.000</p>
-<button onclick="addToCart('Sabun Cuci Piring',10000)">Beli</button>
-</div>
-
-<div class="card">
-<img src="https://via.placeholder.com/200">
-<h3>Deterjen Ekonomis</h3>
-<p>Rp 20.000</p>
-<button onclick="addToCart('Deterjen Ekonomis',20000)">Beli</button>
-</div>
-
-<div class="card">
-<img src="https://via.placeholder.com/200">
-<h3>Pewangi Laundry</h3>
-<p>Rp 25.000</p>
-<button onclick="addToCart('Pewangi Laundry',25000)">Beli</button>
-</div>
-
-<div class="card">
-<img src="https://via.placeholder.com/200">
-<h3>Pembersih Lantai Hemat</h3>
-<p>Rp 15.000</p>
-<button onclick="addToCart('Pembersih Lantai Hemat',15000)">Beli</button>
-</div>
+`).join(""));
+</script>
 
 </div>
-
-<!-- CHECKOUT -->
-<div class="checkout">
-<button onclick="checkout()">Checkout via WhatsApp</button>
-</div>
-
-<section>
-<h2>Kenapa Pilih Kami?</h2>
-<p>✔ Produk berkualitas</p>
-<p>✔ Harga terjangkau</p>
-<p>✔ Wangi tahan lama</p>
-<p>✔ Bisa grosir & reseller</p>
-</section>
-
-<section>
-<h2>Testimoni</h2>
-<p>"Wanginya tahan lama!"</p>
-<p>"Produk bagus dan murah"</p>
-</section>
-
-<footer style="text-align:center; padding:20px;">
-© 2026 EVI STORE MANOKWARI
-</footer>
 
 <script>
 let cart = [];
-let total = 0;
 
-function addToCart(nama, harga) {
-  cart.push({nama, harga});
-  total += harga;
+function addToCart(nama, harga){
+  cart.push({nama,harga});
+  updateCart();
+}
+
+function updateCart(){
+  let items = document.getElementById("cart-items");
+  let total = 0;
+
+  items.innerHTML = "";
+
+  cart.forEach((item,index)=>{
+    total += item.harga;
+
+    items.innerHTML += `
+    <div class="cart-item">
+      ${item.nama} 
+      <button onclick="removeItem(${index})">X</button>
+    </div>
+    `;
+  });
 
   document.getElementById("cart-count").innerText = cart.length;
   document.getElementById("total").innerText = total;
-
-  alert(nama + " ditambahkan");
 }
 
-function checkout() {
+function removeItem(index){
+  cart.splice(index,1);
+  updateCart();
+}
+
+function toggleCart(){
+  let popup = document.getElementById("cart-popup");
+  popup.style.display = popup.style.display === "block" ? "none" : "block";
+}
+
+function checkout(){
   if(cart.length === 0){
     alert("Keranjang kosong!");
     return;
   }
 
   let pesan = "Halo, saya ingin pesan:%0A";
+  let total = 0;
 
   cart.forEach((item,i)=>{
     pesan += (i+1)+". "+item.nama+" - Rp "+item.harga+"%0A";
+    total += item.harga;
   });
 
   pesan += "%0ATotal: Rp "+total;

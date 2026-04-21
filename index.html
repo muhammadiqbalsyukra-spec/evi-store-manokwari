@@ -7,6 +7,9 @@
 
 <style>
 <style>
+  <div id="cart" style="position:fixed; top:10px; right:10px; background:white; padding:10px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2);">
+  🛒 Keranjang (<span id="cart-count">0</span>)
+</div>
 body {
   font-family: Arial;
   margin: 0;
@@ -97,7 +100,7 @@ h2 {
       <h3>Sabun Homecare</h3>
       <p>Rp 25.000</p>
       <a href="https://wa.me/628xxxxxxxxxx">
-        <button>Beli Sekarang</button>
+        <button onclick="addToCart('Sabun Homecare', 25000)">Beli</button>
       </a>
     </div>
 
@@ -107,7 +110,7 @@ h2 {
       <h3>Detergen Cair</h3>
       <p>Rp 35.000</p>
       <a href="https://wa.me/628xxxxxxxxxx">
-        <button>Beli Sekarang</button>
+        <button onclick="addToCart('Sabun Homecare', 25000)">Beli</button>
       </a>
     </div>
 
@@ -117,36 +120,49 @@ h2 {
       <h3>Pembersih Lantai</h3>
       <p>Rp 30.000</p>
       <a href="https://wa.me/628xxxxxxxxxx">
-        <button>Beli Sekarang</button>
+        <button onclick="addToCart('Sabun Homecare', 25000)">Beli</button>
+
+         <!-- Produk 4 -->
+    <div class="card">
+      <img src="https://via.placeholder.com/200">
+      <h3>Sabun cuci piring</h3>
+      <p>Rp 10.000</p>
+      <a href="https://wa.me/628xxxxxxxxxx">
+        <button onclick="addToCart('Sabun Homecare', 25000)">Beli</button>
+
+          <!-- Produk 5 -->
+    <div class="card">
+      <img src="https://via.placeholder.com/200">
+      <h3>Deterjen cair</h3>
+      <p>Rp 20.000</p>
+      <a href="https://wa.me/628xxxxxxxxxx">
+        <button onclick="addToCart('Sabun Homecare', 25000)">Beli</button>
+
+          <!-- Produk 6 -->
+    <div class="card">
+      <img src="https://via.placeholder.com/200">
+      <h3>Pewangi laundry</h3>
+      <p>Rp 25.000</p>
+      <a href="https://wa.me/628xxxxxxxxxx">
+        <button onclick="addToCart('Sabun Homecare', 25000)">Beli</button>
+  <!-- Produk 7 -->
+    <div class="card">
+      <img src="https://via.placeholder.com/200">
+      <h3>Pembersih lantai</h3>
+      <p>Rp 15.000</p>
+      <a href="https://wa.me/628xxxxxxxxxx">
+        <button onclick="addToCart('Sabun Homecare', 25000)">Beli</button>
+        
       </a>
     </div>
 
   </div>
 </section>
-</section>
-  <h2>Produk Kami</h2>
-
-  <div class="card">
-    <h3>Sabun Cuci Piring</h3>
-    <p>Mulai Rp 10.000</p>
-  </div>
-
-  <div class="card">
-    <h3>Deterjen Cair</h3>
-    <p>Mulai Rp 20.000</p>
-  </div>
-
-  <div class="card">
-    <h3>Pewangi Laundry</h3>
-    <p>Mulai Rp 25.000</p>
-  </div>
-
-  <div class="card">
-    <h3>Pembersih Lantai</h3>
-    <p>Mulai Rp 15.000</p>
-  </div>
-
-</section>
+<div style="text-align:center; margin:20px;">
+  <button onclick="checkout()" style="padding:15px; background:#ff6600; color:white; border:none; border-radius:10px;">
+    Checkout via WhatsApp
+  </button>
+</div>
 
 <section>
   <h2>Kenapa Pilih Kami?</h2>
@@ -174,6 +190,28 @@ h2 {
 <footer>
   <p>© 2026 EVI STORE MANOKWARI</p>
 </footer>
+<script>
+let cart = [];
 
+function addToCart(nama, harga) {
+  cart.push({nama, harga});
+  document.getElementById("cart-count").innerText = cart.length;
+  alert(nama + " ditambahkan ke keranjang");
+}
+
+function checkout() {
+  let pesan = "Pesanan saya:%0A";
+  let total = 0;
+
+  cart.forEach((item, i) => {
+    pesan += (i+1) + ". " + item.nama + " - Rp " + item.harga + "%0A";
+    total += item.harga;
+  });
+
+  pesan += "%0ATotal: Rp " + total;
+
+  window.open("https://wa.me/6282285712293?text=" + pesan);
+}
+</script>
 </body>
 </html>

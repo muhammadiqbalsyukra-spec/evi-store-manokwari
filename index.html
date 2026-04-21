@@ -2,43 +2,52 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVI STORE MANOKWARI</title>
+<title>Toko Sultan</title>
 
 <style>
 body {
   font-family: Arial;
   margin: 0;
-  background: #f1f1f1;
+  background: #f5f5f5;
 }
 
 /* Navbar */
 .navbar {
-  background: #2196F3;
+  background: #111;
   color: white;
   padding: 15px;
   text-align: center;
   font-size: 18px;
 }
 
+/* Button Admin */
+.admin-btn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: gold;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 /* Search */
 .search-box {
   padding: 10px;
-  text-align: center;
 }
 
 .search-box input {
-  width: 90%;
+  width: 100%;
   padding: 8px;
   border-radius: 8px;
-  border: 1px solid #ccc;
 }
 
 /* Produk */
 .container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 15px;
-  padding: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(160px,1fr));
+  gap: 10px;
+  padding: 10px;
 }
 
 .produk {
@@ -50,23 +59,11 @@ body {
 
 .produk img {
   width: 100%;
-  border-radius: 8px;
 }
 
 .harga {
   color: red;
   font-weight: bold;
-}
-
-/* Button */
-.btn {
-  background: green;
-  color: white;
-  padding: 7px;
-  border-radius: 6px;
-  display: block;
-  margin-top: 5px;
-  cursor: pointer;
 }
 
 /* Cart */
@@ -75,65 +72,119 @@ body {
   bottom: 0;
   width: 100%;
   background: white;
-  border-top: 2px solid #ccc;
   padding: 10px;
+  border-top: 2px solid #ccc;
 }
 
-</style>
-</head>
+/* Popup Admin */
+.popup {
+  display: none;
+  position: fixed;
+  top: 20%;
+  left: 10%;
+  width: 80%;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+}
 
+.popup input {
+  width: 100%;
+  margin: 5px 0;
+  padding: 8px;
+}
+</style>
+
+</head>
 <body>
 
-<div class="navbar">🛒 EVI STORE MANOKWARI</div>
+<div class="navbar">👑 TOKO SULTAN</div>
+<div class="admin-btn" onclick="bukaAdmin()">+ Produk</div>
 
 <div class="search-box">
-  <input type="text" id="search" placeholder="Cari produk..." onkeyup="cariProduk()">
+  <input type="text" id="search" placeholder="Cari..." onkeyup="cari()">
 </div>
 
-<div class="container" id="produkList">
-
-  <div class="produk">
-    <img src="https://i.ibb.co/FLfZwRHd/623cb0a1b0f536e26daf040d290fa49a-jpg-720x720q80-jpg.webp">
-    <h3>Sunlight</h3>
-    <div class="harga">10000</div>
-    <div class="btn" onclick="tambah('Sunlight',10000)">Tambah</div>
-  </div>
-
-  <div class="produk">
-    <img src="https://i.ibb.co/9HcY9T3x/CM-DETTUB1062-Dettol-Floor-Cleaner-Lavender-Pouch-700-m-L.webp">
-    <h3>Dettol Floor Cleaner</h3>
-    <div class="harga">18000</div>
-    <div class="btn" onclick="tambah('Dettol Floor Cleaner',18000)">Tambah</div>
-  </div>
-
-</div>
+<div class="container" id="produk"></div>
 
 <div class="cart">
   Total: Rp <span id="total">0</span>
   <button onclick="checkout()">Checkout</button>
 </div>
 
-<script>
-let total = 0;
-let pesan = "";
+<!-- Popup Admin -->
+<div class="popup" id="popup">
+  <h3>Tambah Produk</h3>
+  <input id="nama" placeholder="Nama produk">
+  <input id="harga" placeholder="Harga">
+  <input id="gambar" placeholder="Link gambar">
+  <button onclick="tambahProduk()">Simpan</button>
+</div>
 
-function tambah(nama, harga){
-  total += harga;
-  pesan += nama + "%0A";
+<script>
+let data = JSON.parse(localStorage.getItem("produk")) || [
+  {
+    nama:"Sunlight",
+    harga:10000,
+    gambar:"https://i.ibb.co/FLfZwRHd/623cb0a1b0f536e26daf040d290fa49a-jpg-720x720q80-jpg.webp"
+  },
+  {
+    nama:"Dettol Floor Cleaner",
+    harga:18000,
+    gambar:"https://i.ibb.co/9HcY9T3x/CM-DETTUB1062-Dettol-Floor-Cleaner-Lavender-Pouch-700-m-L.webp"
+  }
+];
+
+let total = 0;
+let pesanan = "";
+
+function tampil(){
+  let html="";
+  data.forEach((p,i)=>{
+    html += `
+    <div class="produk">
+      <img src="${p.gambar}">
+      <h4>${p.nama}</h4>
+      <div class="harga">Rp ${p.harga}</div>
+      <button onclick="beli(${i})">Tambah</button>
+    </div>`;
+  });
+  document.getElementById("produk").innerHTML = html;
+}
+tampil();
+
+function beli(i){
+  total += data[i].harga;
+  pesanan += data[i].nama + "%0A";
   document.getElementById("total").innerText = total;
 }
 
 function checkout(){
-  window.location.href = "https://wa.me/6282285712293?text=Pesanan:%0A" + pesan + "Total: Rp " + total;
+  window.location.href = "https://wa.me/628xxxx?text=Pesanan:%0A"+pesanan+"Total: Rp "+total;
 }
 
-function cariProduk(){
-  let input = document.getElementById("search").value.toLowerCase();
-  let produk = document.getElementsByClassName("produk");
+function bukaAdmin(){
+  document.getElementById("popup").style.display="block";
+}
 
-  for(let i=0;i<produk.length;i++){
-    let nama = produk[i].innerText.toLowerCase();
-    produk[i].style.display = nama.includes(input) ? "" : "none";
+function tambahProduk(){
+  let n = document.getElementById("nama").value;
+  let h = document.getElementById("harga").value;
+  let g = document.getElementById("gambar").value;
+
+  data.push({nama:n,harga:parseInt(h),gambar:g});
+  localStorage.setItem("produk", JSON.stringify(data));
+  tampil();
+  document.getElementById("popup").style.display="none";
+}
+
+function cari(){
+  let input = document.getElementById("search").value.toLowerCase();
+  let items = document.getElementsByClassName("produk");
+
+  for(let i=0;i<items.length;i++){
+    let text = items[i].innerText.toLowerCase();
+    items[i].style.display = text.includes(input) ? "" : "none";
   }
 }
 </script>

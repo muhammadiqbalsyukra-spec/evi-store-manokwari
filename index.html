@@ -7,28 +7,39 @@
 
 <style>
 body {
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   margin: 0;
   background: #f5f5f5;
 }
 
 /* HEADER */
 header {
-  background: linear-gradient(135deg, #ff6600, #ff9900);
+  background: linear-gradient(135deg,#ff6600,#ff9900);
   color: white;
   text-align: center;
   padding: 20px;
 }
 
-/* ICON KERANJANG */
+/* SEARCH */
+.search-box {
+  text-align: center;
+  margin: 15px;
+}
+.search-box input {
+  width: 80%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+/* CART ICON */
 #cart-icon {
   position: fixed;
   top: 15px;
   right: 20px;
-  font-size: 22px;
   cursor: pointer;
+  font-size: 22px;
 }
-
 #cart-count {
   background: red;
   color: white;
@@ -37,70 +48,48 @@ header {
   font-size: 12px;
 }
 
-/* POPUP CART */
+/* CART POPUP */
 #cart-popup {
   position: fixed;
   right: 20px;
   top: 60px;
-  width: 300px;
+  width: 320px;
   background: white;
   border-radius: 10px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
   display: none;
   padding: 15px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
 }
 
-.cart-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.cart-item button {
-  background: red;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-/* PRODUK GRID */
+/* GRID */
 .container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
   gap: 15px;
   padding: 20px;
 }
 
+/* CARD */
 .card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   overflow: hidden;
-  transition: 0.3s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
-
-.card:hover {
-  transform: translateY(-5px);
-}
-
 .card img {
   width: 100%;
   height: 150px;
   object-fit: cover;
 }
-
 .card h3 {
   margin: 10px;
   font-size: 14px;
 }
-
 .card p {
   margin: 10px;
   color: #ff6600;
   font-weight: bold;
 }
-
 .card button {
   margin: 10px;
   padding: 8px;
@@ -109,134 +98,209 @@ header {
   background: #25D366;
   color: white;
   border-radius: 6px;
-  cursor: pointer;
+}
+
+/* MODAL */
+#modal {
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+.modal-content {
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  width:300px;
+}
+
+/* CART ITEM */
+.cart-item {
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.cart-item button {
+  background:red;
+  color:white;
+  border:none;
+  border-radius:5px;
 }
 
 /* CHECKOUT */
-.checkout {
-  text-align: center;
-  margin-top: 10px;
-}
-
-.checkout button {
-  width: 100%;
-  padding: 10px;
-  background: #ff6600;
-  color: white;
-  border: none;
-  border-radius: 6px;
+.checkout button{
+  width:100%;
+  padding:10px;
+  background:#ff6600;
+  color:white;
+  border:none;
+  border-radius:6px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ICON CART -->
+<!-- CART ICON -->
 <div id="cart-icon" onclick="toggleCart()">
 🛒 <span id="cart-count">0</span>
 </div>
 
-<!-- POPUP CART -->
+<!-- CART POPUP -->
 <div id="cart-popup">
-  <h3>Keranjang</h3>
-  <div id="cart-items"></div>
-  <p>Total: Rp <span id="total">0</span></p>
-  
-  <div class="checkout">
-    <button onclick="checkout()">Checkout</button>
-  </div>
+<h3>Keranjang</h3>
+<div id="cart-items"></div>
+<p>Total: Rp <span id="total">0</span></p>
+<div class="checkout">
+<button onclick="checkout()">Checkout</button>
+</div>
 </div>
 
 <header>
-  <h1>EVI STORE MANOKWARI</h1>
-  <p>Produk Homecare Berkualitas</p>
+<h1>EVI STORE MANOKWARI</h1>
+<p>Homecare Berkualitas</p>
 </header>
 
-<h2 style="text-align:center;">Produk Kami</h2>
+<div class="search-box">
+<input type="text" id="search" placeholder="Cari produk..." onkeyup="renderProducts()">
+</div>
 
-<div class="container">
+<div class="container" id="product-list"></div>
 
-<!-- PRODUK -->
+<!-- MODAL -->
+<div id="modal" onclick="closeModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 id="modal-title"></h3>
+    <p id="modal-price"></p>
+    <button onclick="addFromModal()">Tambah ke Keranjang</button>
+  </div>
+</div>
+
 <script>
-const products = [
-["Sabun Homecare",25000],
-["Detergen Cair",35000],
-["Pembersih Lantai",30000],
-["Sabun Cuci Piring",10000],
-["Deterjen Ekonomis",20000],
-["Pewangi Laundry",25000],
-["Pembersih Lantai Hemat",15000]
+let products = [
+{name:"Sabun Homecare",price:25000,rating:5},
+{name:"Detergen Cair",price:35000,rating:4},
+{name:"Pembersih Lantai",price:30000,rating:4},
+{name:"Sabun Cuci Piring",price:10000,rating:5},
+{name:"Deterjen Ekonomis",price:20000,rating:3},
+{name:"Pewangi Laundry",price:25000,rating:5},
+{name:"Pembersih Lantai Hemat",price:15000,rating:4}
 ];
 
-document.write(products.map(p=>`
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+function renderProducts(){
+let keyword = document.getElementById("search").value.toLowerCase();
+let list = document.getElementById("product-list");
+list.innerHTML = "";
+
+products
+.filter(p=>p.name.toLowerCase().includes(keyword))
+.forEach(p=>{
+list.innerHTML += `
 <div class="card">
 <img src="https://via.placeholder.com/200">
-<h3>${p[0]}</h3>
-<p>Rp ${p[1]}</p>
-<button onclick="addToCart('${p[0]}',${p[1]})">+ Keranjang</button>
+<h3>${p.name}</h3>
+<p>Rp ${p.price}</p>
+<p>${"⭐".repeat(p.rating)}</p>
+<button onclick="openModal('${p.name}',${p.price})">Detail</button>
+<button onclick="addToCart('${p.name}',${p.price})">+ Keranjang</button>
 </div>
-`).join(""));
-</script>
+`;
+});
+}
 
-</div>
+function addToCart(nama,harga){
+let item = cart.find(i=>i.nama===nama);
+if(item){
+item.qty++;
+}else{
+cart.push({nama,harga,qty:1});
+}
+saveCart();
+}
 
-<script>
-let cart = [];
-
-function addToCart(nama, harga){
-  cart.push({nama,harga});
-  updateCart();
+function saveCart(){
+localStorage.setItem("cart",JSON.stringify(cart));
+updateCart();
 }
 
 function updateCart(){
-  let items = document.getElementById("cart-items");
-  let total = 0;
+let items = document.getElementById("cart-items");
+let total=0;
+items.innerHTML="";
 
-  items.innerHTML = "";
+cart.forEach((item,i)=>{
+total += item.harga*item.qty;
 
-  cart.forEach((item,index)=>{
-    total += item.harga;
+items.innerHTML += `
+<div class="cart-item">
+${item.nama} x${item.qty}
+<button onclick="removeItem(${i})">X</button>
+</div>`;
+});
 
-    items.innerHTML += `
-    <div class="cart-item">
-      ${item.nama} 
-      <button onclick="removeItem(${index})">X</button>
-    </div>
-    `;
-  });
-
-  document.getElementById("cart-count").innerText = cart.length;
-  document.getElementById("total").innerText = total;
+document.getElementById("cart-count").innerText = cart.length;
+document.getElementById("total").innerText = total;
 }
 
-function removeItem(index){
-  cart.splice(index,1);
-  updateCart();
+function removeItem(i){
+cart.splice(i,1);
+saveCart();
 }
 
 function toggleCart(){
-  let popup = document.getElementById("cart-popup");
-  popup.style.display = popup.style.display === "block" ? "none" : "block";
+let c = document.getElementById("cart-popup");
+c.style.display = c.style.display==="block"?"none":"block";
 }
 
+/* MODAL */
+let selectedProduct = null;
+
+function openModal(nama,harga){
+selectedProduct = {nama,harga};
+document.getElementById("modal-title").innerText = nama;
+document.getElementById("modal-price").innerText = "Rp "+harga;
+document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(){
+document.getElementById("modal").style.display="none";
+}
+
+function addFromModal(){
+addToCart(selectedProduct.nama,selectedProduct.harga);
+closeModal();
+}
+
+/* CHECKOUT */
 function checkout(){
-  if(cart.length === 0){
-    alert("Keranjang kosong!");
-    return;
-  }
-
-  let pesan = "Halo, saya ingin pesan:%0A";
-  let total = 0;
-
-  cart.forEach((item,i)=>{
-    pesan += (i+1)+". "+item.nama+" - Rp "+item.harga+"%0A";
-    total += item.harga;
-  });
-
-  pesan += "%0ATotal: Rp "+total;
-
-  window.open("https://wa.me/6282285712293?text="+pesan);
+if(cart.length===0){
+alert("Keranjang kosong");
+return;
 }
+
+let pesan="Halo saya mau pesan:%0A";
+let total=0;
+
+cart.forEach((item,i)=>{
+pesan += (i+1)+". "+item.nama+" x"+item.qty+"%0A";
+total += item.harga*item.qty;
+});
+
+pesan += "%0ATotal: Rp "+total;
+
+window.open("https://wa.me/6282285712293?text="+pesan);
+}
+
+/* INIT */
+renderProducts();
+updateCart();
 </script>
 
 </body>

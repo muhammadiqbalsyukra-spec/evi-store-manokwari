@@ -6,95 +6,163 @@
 <title>EVI STORE MANOKWARI</title>
 
 <style>
-body {
-  font-family: Arial;
-  margin: 0;
-  background: #f5f5f5;
+body{
+  font-family:Arial;
+  margin:0;
+  background:#f5f5f5;
 }
 
-header {
-  background: linear-gradient(135deg,#ff6600,#ff9900);
-  color: white;
-  text-align: center;
-  padding: 20px;
+/* HEADER */
+header{
+  background:linear-gradient(135deg,#ff6600,#ff9900);
+  color:white;
+  text-align:center;
+  padding:15px;
 }
 
-/* GRID 2 KOLOM */
-.container {
-  display: grid;
-  grid-template-columns: repeat(2,1fr);
-  gap: 10px;
-  padding: 10px;
+/* CART ICON */
+#cart-icon{
+  position:fixed;
+  top:15px;
+  right:15px;
+  font-size:22px;
+  cursor:pointer;
+}
+#cart-count{
+  background:red;
+  color:white;
+  padding:3px 7px;
+  border-radius:50%;
+  font-size:12px;
 }
 
-.card {
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+/* GRID */
+.container{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  padding:10px;
 }
-.card img {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
+
+/* CARD */
+.card{
+  background:white;
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 3px 8px rgba(0,0,0,0.1);
 }
-.card h3 {
-  margin: 8px;
-  font-size: 13px;
+.card img{
+  width:100%;
+  height:120px;
+  object-fit:cover;
 }
-.card p {
-  margin: 8px;
-  color: #ff6600;
-  font-weight: bold;
-  font-size: 12px;
+.card h3{
+  font-size:13px;
+  margin:8px;
 }
-.card button {
-  margin: 8px;
-  padding: 6px;
-  width: 90%;
-  border: none;
-  background: #25D366;
-  color: white;
-  border-radius: 5px;
-  font-size: 12px;
+.card p{
+  font-size:12px;
+  margin:8px;
+  color:#ff6600;
+  font-weight:bold;
+}
+.card button{
+  margin:8px;
+  padding:6px;
+  width:90%;
+  border:none;
+  background:#25D366;
+  color:white;
+  border-radius:5px;
 }
 
 /* MODAL */
-#modal {
-  position: fixed;
-  top:0;
-  left:0;
+#modal{
+  position:fixed;
+  top:0;left:0;
   width:100%;
   height:100%;
-  background: rgba(0,0,0,0.5);
+  background:rgba(0,0,0,0.5);
   display:none;
   justify-content:center;
   align-items:center;
 }
-.modal-content {
+.modal-content{
   background:white;
   padding:20px;
   border-radius:10px;
   width:300px;
 }
 
-.more-text {
+/* CART */
+#cart-popup{
+  position:fixed;
+  right:10px;
+  top:60px;
+  width:300px;
+  background:white;
+  border-radius:10px;
+  padding:15px;
+  display:none;
+  box-shadow:0 5px 20px rgba(0,0,0,0.3);
+}
+.cart-item{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:8px;
+}
+.cart-item button{
+  background:red;
+  color:white;
+  border:none;
+}
+
+/* BUTTON */
+.checkout button{
+  width:100%;
+  padding:10px;
+  background:#ff6600;
+  color:white;
+  border:none;
+  border-radius:6px;
+}
+
+/* TEXT */
+.more-text{
   text-align:center;
   margin:20px;
   font-weight:bold;
+  color:#555;
 }
 </style>
 </head>
 
 <body>
 
+<!-- CART ICON -->
+<div id="cart-icon" onclick="toggleCart()">
+🛒 <span id="cart-count">0</span>
+</div>
+
+<!-- CART -->
+<div id="cart-popup">
+<h3>Keranjang</h3>
+<div id="cart-items"></div>
+<p>Total: Rp <span id="total">0</span></p>
+<div class="checkout">
+<button onclick="checkout()">Checkout</button>
+</div>
+</div>
+
 <header>
-<h1>EVI STORE MANOKWARI</h1>
+<h2>EVI STORE MANOKWARI</h2>
 <p>Homecare Berkualitas</p>
 </header>
 
+<!-- PRODUK -->
 <div class="container" id="product-list"></div>
 
+<!-- TEXT -->
 <div class="more-text">
 dan masih banyak lagi barang-barang lainnya
 </div>
@@ -104,79 +172,149 @@ dan masih banyak lagi barang-barang lainnya
   <div class="modal-content" onclick="event.stopPropagation()">
     <h3 id="modal-title"></h3>
 
-    <!-- PILIHAN SATUAN -->
-    <label>Pilih Satuan:</label>
+    <label>Satuan:</label>
     <select id="satuan" onchange="updatePrice()">
       <option value="pcs">PCS</option>
       <option value="karton">Karton</option>
     </select>
 
+    <br><br>
+
+    <label>Jumlah:</label>
+    <input type="number" id="qty" value="1" min="1" style="width:60px">
+
     <p id="modal-price"></p>
 
-    <button onclick="addToCart()">Tambah</button>
+    <button onclick="addToCart()">Tambah ke Keranjang</button>
   </div>
 </div>
 
 <script>
-let products = [
-{name:"Sabun Homecare", pcs:25000, karton:280000, rating:5},
-{name:"Detergen Cair", pcs:35000, karton:400000, rating:4},
-{name:"Pembersih Lantai", pcs:30000, karton:330000, rating:4},
-{name:"Sabun Cuci Piring", pcs:10000, karton:110000, rating:5}
+let products=[
+{name:"Sabun Homecare",pcs:25000,karton:280000},
+{name:"Detergen Cair",pcs:35000,karton:400000},
+{name:"Pembersih Lantai",pcs:30000,karton:330000},
+{name:"Sabun Cuci Piring",pcs:10000,karton:110000},
+{name:"Pewangi Laundry",pcs:25000,karton:270000}
 ];
 
-let cart = [];
-let selectedProduct = null;
+let cart=JSON.parse(localStorage.getItem("cart"))||[];
+let selectedProduct=null;
 
+/* RENDER */
 function renderProducts(){
-let list = document.getElementById("product-list");
-list.innerHTML = "";
+let list=document.getElementById("product-list");
+list.innerHTML="";
 
 products.forEach(p=>{
-list.innerHTML += `
+list.innerHTML+=`
 <div class="card">
 <img src="https://via.placeholder.com/200">
 <h3>${p.name}</h3>
 <p>Mulai Rp ${p.pcs}</p>
 <button onclick="openModal('${p.name}')">Detail</button>
-</div>
-`;
+</div>`;
 });
 }
 
+/* MODAL */
 function openModal(nama){
-selectedProduct = products.find(p=>p.name===nama);
-document.getElementById("modal-title").innerText = nama;
+selectedProduct=products.find(p=>p.name===nama);
+document.getElementById("modal-title").innerText=nama;
 document.getElementById("modal").style.display="flex";
 updatePrice();
 }
 
 function updatePrice(){
-let satuan = document.getElementById("satuan").value;
-let harga = selectedProduct[satuan];
-document.getElementById("modal-price").innerText = "Harga: Rp "+harga;
+let satuan=document.getElementById("satuan").value;
+let harga=selectedProduct[satuan];
+document.getElementById("modal-price").innerText="Harga: Rp "+harga;
 }
 
 function closeModal(){
 document.getElementById("modal").style.display="none";
 }
 
+/* CART */
 function addToCart(){
-let satuan = document.getElementById("satuan").value;
-let harga = selectedProduct[satuan];
+let satuan=document.getElementById("satuan").value;
+let qty=parseInt(document.getElementById("qty").value);
+let harga=selectedProduct[satuan];
 
+let item=cart.find(i=>i.nama===selectedProduct.name && i.satuan===satuan);
+
+if(item){
+item.qty+=qty;
+}else{
 cart.push({
 nama:selectedProduct.name,
 harga:harga,
 satuan:satuan,
-qty:1
+qty:qty
 });
+}
 
-alert("Ditambahkan!");
+saveCart();
 closeModal();
 }
 
+function saveCart(){
+localStorage.setItem("cart",JSON.stringify(cart));
+updateCart();
+}
+
+function updateCart(){
+let items=document.getElementById("cart-items");
+let total=0;
+items.innerHTML="";
+
+cart.forEach((item,i)=>{
+total+=item.harga*item.qty;
+
+items.innerHTML+=`
+<div class="cart-item">
+${item.nama} (${item.satuan}) x${item.qty}
+<button onclick="removeItem(${i})">X</button>
+</div>`;
+});
+
+document.getElementById("cart-count").innerText=cart.length;
+document.getElementById("total").innerText=total;
+}
+
+function removeItem(i){
+cart.splice(i,1);
+saveCart();
+}
+
+function toggleCart(){
+let c=document.getElementById("cart-popup");
+c.style.display=c.style.display==="block"?"none":"block";
+}
+
+/* CHECKOUT WA */
+function checkout(){
+if(cart.length===0){
+alert("Keranjang kosong");
+return;
+}
+
+let pesan="Halo saya mau pesan:%0A";
+let total=0;
+
+cart.forEach((item,i)=>{
+pesan+=(i+1)+". "+item.nama+" ("+item.satuan+") x"+item.qty+"%0A";
+total+=item.harga*item.qty;
+});
+
+pesan+="%0ATotal: Rp "+total;
+
+window.open("https://wa.me/6282285712293?text="+pesan);
+}
+
+/* INIT */
 renderProducts();
+updateCart();
 </script>
 
 </body>

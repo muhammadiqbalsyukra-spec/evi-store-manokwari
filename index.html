@@ -6,133 +6,89 @@
 <title>EVI STORE MANOKWARI</title>
 
 <style>
-body{
-  font-family:Arial;
-  margin:0;
-  background:#f5f5f5;
-}
+body{font-family:Arial;margin:0;background:#f5f5f5;}
 
-/* HEADER */
 header{
   background:linear-gradient(135deg,#ff6600,#ff9900);
-  color:white;
-  text-align:center;
-  padding:15px;
+  color:white;text-align:center;padding:15px;
 }
 
-/* CART ICON */
 #cart-icon{
-  position:fixed;
-  top:15px;
-  right:15px;
-  font-size:22px;
-  cursor:pointer;
+  position:fixed;top:15px;right:15px;
+  font-size:22px;cursor:pointer;
 }
 #cart-count{
-  background:red;
-  color:white;
-  padding:3px 7px;
-  border-radius:50%;
+  background:red;color:white;
+  padding:3px 7px;border-radius:50%;
   font-size:12px;
 }
 
-/* GRID */
+/* GRID 2 KOLOM */
 .container{
   display:grid;
   grid-template-columns:repeat(2,1fr);
-  gap:10px;
-  padding:10px;
+  gap:10px;padding:10px;
 }
 
-/* CARD */
 .card{
-  background:white;
-  border-radius:10px;
+  background:white;border-radius:10px;
   overflow:hidden;
   box-shadow:0 3px 8px rgba(0,0,0,0.1);
 }
 .card img{
-  width:100%;
-  height:120px;
-  object-fit:cover;
+  width:100%;height:120px;object-fit:cover;
 }
-.card h3{
-  font-size:13px;
-  margin:8px;
-}
+.card h3{font-size:13px;margin:8px;}
 .card p{
-  font-size:12px;
-  margin:8px;
-  color:#ff6600;
-  font-weight:bold;
+  font-size:12px;margin:8px;
+  color:#ff6600;font-weight:bold;
 }
 .card button{
-  margin:8px;
-  padding:6px;
-  width:90%;
-  border:none;
-  background:#25D366;
-  color:white;
-  border-radius:5px;
+  margin:8px;padding:6px;width:90%;
+  border:none;background:#25D366;
+  color:white;border-radius:5px;
 }
 
 /* MODAL */
 #modal{
-  position:fixed;
-  top:0;left:0;
-  width:100%;
-  height:100%;
+  position:fixed;top:0;left:0;
+  width:100%;height:100%;
   background:rgba(0,0,0,0.5);
   display:none;
-  justify-content:center;
-  align-items:center;
+  justify-content:center;align-items:center;
 }
 .modal-content{
-  background:white;
-  padding:20px;
-  border-radius:10px;
-  width:300px;
+  background:white;padding:20px;
+  border-radius:10px;width:300px;
 }
 
 /* CART */
 #cart-popup{
-  position:fixed;
-  right:10px;
-  top:60px;
-  width:300px;
-  background:white;
-  border-radius:10px;
-  padding:15px;
+  position:fixed;right:10px;top:60px;
+  width:300px;background:white;
+  border-radius:10px;padding:15px;
   display:none;
   box-shadow:0 5px 20px rgba(0,0,0,0.3);
 }
 .cart-item{
-  display:flex;
-  justify-content:space-between;
+  display:flex;justify-content:space-between;
   margin-bottom:8px;
 }
 .cart-item button{
-  background:red;
-  color:white;
-  border:none;
+  background:red;color:white;border:none;
 }
 
 /* BUTTON */
 .checkout button{
-  width:100%;
-  padding:10px;
-  background:#ff6600;
-  color:white;
-  border:none;
-  border-radius:6px;
+  width:100%;padding:10px;
+  background:#ff6600;color:white;
+  border:none;border-radius:6px;
 }
 
 /* TEXT */
 .more-text{
-  text-align:center;
-  margin:20px;
-  font-weight:bold;
-  color:#555;
+  text-align:center;margin:20px;
+  font-weight:bold;color:#555;
 }
 </style>
 </head>
@@ -162,7 +118,6 @@ header{
 <!-- PRODUK -->
 <div class="container" id="product-list"></div>
 
-<!-- TEXT -->
 <div class="more-text">
 dan masih banyak lagi barang-barang lainnya
 </div>
@@ -191,11 +146,36 @@ dan masih banyak lagi barang-barang lainnya
 
 <script>
 let products=[
-{name:"Sabun Homecare",pcs:25000,karton:280000},
-{name:"Detergen Cair",pcs:35000,karton:400000},
-{name:"Pembersih Lantai",pcs:30000,karton:330000},
-{name:"Sabun Cuci Piring",pcs:10000,karton:110000},
-{name:"Pewangi Laundry",pcs:25000,karton:270000}
+{
+name:"Sabun Cuci Piring Sunlight",
+pcs:10000,
+karton:110000,
+img:"https://via.placeholder.com/200?text=Sunlight"
+},
+{
+name:"Deterjen Cair Rinso",
+pcs:35000,
+karton:400000,
+img:"https://via.placeholder.com/200?text=Rinso"
+},
+{
+name:"Pembersih Lantai Wipol",
+pcs:30000,
+karton:330000,
+img:"https://via.placeholder.com/200?text=Wipol"
+},
+{
+name:"Sabun Dettol Cair",
+pcs:25000,
+karton:280000,
+img:"https://via.placeholder.com/200?text=Dettol"
+},
+{
+name:"Pewangi Laundry",
+pcs:25000,
+karton:270000,
+img:"https://via.placeholder.com/200?text=Pewangi"
+}
 ];
 
 let cart=JSON.parse(localStorage.getItem("cart"))||[];
@@ -209,7 +189,7 @@ list.innerHTML="";
 products.forEach(p=>{
 list.innerHTML+=`
 <div class="card">
-<img src="https://via.placeholder.com/200">
+<img src="${p.img}">
 <h3>${p.name}</h3>
 <p>Mulai Rp ${p.pcs}</p>
 <button onclick="openModal('${p.name}')">Detail</button>
@@ -292,7 +272,7 @@ let c=document.getElementById("cart-popup");
 c.style.display=c.style.display==="block"?"none":"block";
 }
 
-/* CHECKOUT WA */
+/* CHECKOUT */
 function checkout(){
 if(cart.length===0){
 alert("Keranjang kosong");

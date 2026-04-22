@@ -1,84 +1,323 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EVI STORE MANOKWARI</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #f5f5f5;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-    }
-    .product-img {
-      width: 100%;
-      border-radius: 10px;
-    }
-    h1 {
-      font-size: 24px;
-      margin: 10px 0;
-    }
-    .price {
-      color: #e63946;
-      font-size: 22px;
-      font-weight: bold;
-    }
-    .desc {
-      margin-top: 15px;
-      line-height: 1.6;
-    }
-    .btn {
-      display: block;
-      text-align: center;
-      padding: 15px;
-      margin-top: 15px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .wa {
-      background: #25D366;
-      color: white;
-    }
-    .market {
-      background: #ff9800;
-      color: white;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVI STORE MANOKWARI</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #f5f5f5;
+}
+
+header {
+  background: linear-gradient(135deg,#ff6600,#ff9900);
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.search-box {
+  text-align: center;
+  margin: 15px;
+}
+.search-box input {
+  width: 80%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+#cart-icon {
+  position: fixed;
+  top: 15px;
+  right: 20px;
+  cursor: pointer;
+  font-size: 22px;
+}
+#cart-count {
+  background: red;
+  color: white;
+  padding: 3px 7px;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+#cart-popup {
+  position: fixed;
+  right: 20px;
+  top: 60px;
+  width: 320px;
+  background: white;
+  border-radius: 10px;
+  display: none;
+  padding: 15px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap: 15px;
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.card img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+.card h3 {
+  margin: 10px;
+  font-size: 14px;
+}
+.card p {
+  margin: 10px;
+  color: #ff6600;
+  font-weight: bold;
+}
+.card button {
+  margin: 10px;
+  padding: 8px;
+  width: 90%;
+  border: none;
+  background: #25D366;
+  color: white;
+  border-radius: 6px;
+}
+
+/* MODAL */
+#modal {
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+.modal-content {
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  width:300px;
+}
+
+/* CART ITEM */
+.cart-item {
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.cart-item button {
+  background:red;
+  color:white;
+  border:none;
+  border-radius:5px;
+}
+
+.checkout button{
+  width:100%;
+  padding:10px;
+  background:#ff6600;
+  color:white;
+  border:none;
+  border-radius:6px;
+}
+
+/* TEXT TAMBAHAN */
+.more-text {
+  text-align:center;
+  margin:20px;
+  font-weight:bold;
+  color:#555;
+}
+</style>
 </head>
+
 <body>
 
-<div class="container">
-  
-  <img src="https://via.placeholder.com/800x500" class="product-img">
-
-  <h1>Bulgogi Pan 32 CM Suggo Tanpa Tutup Kaca</h1>
-  
-  <div class="price">Rp 120.000</div>
-
-  <div class="desc">
-    🔥 Wajan Bulgogi ukuran 32 cm berkualitas tinggi<br><br>
-    ✔ Anti lengket<br>
-    ✔ Cocok untuk BBQ, steak, dan masakan rumahan<br>
-    ✔ Bahan tebal dan tahan lama<br><br>
-    Cocok untuk usaha maupun kebutuhan rumah tangga.
-  </div>
-
-  <a href="https://wa.me/6282285712293" class="btn wa">
-    Beli via WhatsApp
-  </a>
-
-  <a href="#" class="btn market">
-    Lihat di Shopee / Tokopedia
-  </a>
-
+<div id="cart-icon" onclick="toggleCart()">
+🛒 <span id="cart-count">0</span>
 </div>
 
+<div id="cart-popup">
+<h3>Keranjang</h3>
+<div id="cart-items"></div>
+<p>Total: Rp <span id="total">0</span></p>
+<div class="checkout">
+<button onclick="checkout()">Checkout</button>
+</div>
+</div>
+
+<header>
+<h1>EVI STORE MANOKWARI</h1>
+<p>Homecare Berkualitas</p>
+</header>
+
+<div class="search-box">
+<input type="text" id="search" placeholder="Cari produk..." onkeyup="renderProducts()">
+</div>
+
+<div class="container" id="product-list"></div>
+
+<!-- TAMBAHAN TEXT -->
+<div class="more-text">
+dan masih banyak lagi barang-barang lainnya
+</div>
+
+<!-- MODAL -->
+<div id="modal" onclick="closeModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 id="modal-title"></h3>
+    <p id="modal-price"></p>
+
+    <!-- PILIHAN SATUAN -->
+    <label>Pilih Satuan:</label>
+    <select id="satuan">
+      <option value="PCS">PCS</option>
+      <option value="Karton">Karton</option>
+    </select>
+
+    <br><br>
+    <button onclick="addFromModal()">Tambah ke Keranjang</button>
+  </div>
+</div>
+
+<script>
+let products = [
+{name:"Sabun Homecare",price:25000,rating:5},
+{name:"Detergen Cair",price:35000,rating:4},
+{name:"Pembersih Lantai",price:30000,rating:4},
+{name:"Sabun Cuci Piring",price:10000,rating:5},
+{name:"Deterjen Ekonomis",price:20000,rating:3},
+{name:"Pewangi Laundry",price:25000,rating:5},
+{name:"Pembersih Lantai Hemat",price:15000,rating:4}
+];
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+function renderProducts(){
+let keyword = document.getElementById("search").value.toLowerCase();
+let list = document.getElementById("product-list");
+list.innerHTML = "";
+
+products
+.filter(p=>p.name.toLowerCase().includes(keyword))
+.forEach(p=>{
+list.innerHTML += `
+<div class="card">
+<img src="https://via.placeholder.com/200">
+<h3>${p.name}</h3>
+<p>Rp ${p.price}</p>
+<p>${"⭐".repeat(p.rating)}</p>
+<button onclick="openModal('${p.name}',${p.price})">Detail</button>
+</div>
+`;
+});
+}
+
+/* MODAL */
+let selectedProduct = null;
+
+function openModal(nama,harga){
+selectedProduct = {nama,harga};
+document.getElementById("modal-title").innerText = nama;
+document.getElementById("modal-price").innerText = "Rp "+harga;
+document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(){
+document.getElementById("modal").style.display="none";
+}
+
+function addFromModal(){
+let satuan = document.getElementById("satuan").value;
+
+let item = cart.find(i=>i.nama===selectedProduct.nama && i.satuan===satuan);
+
+if(item){
+item.qty++;
+}else{
+cart.push({
+nama:selectedProduct.nama,
+harga:selectedProduct.harga,
+qty:1,
+satuan:satuan
+});
+}
+
+saveCart();
+closeModal();
+}
+
+function saveCart(){
+localStorage.setItem("cart",JSON.stringify(cart));
+updateCart();
+}
+
+function updateCart(){
+let items = document.getElementById("cart-items");
+let total=0;
+items.innerHTML="";
+
+cart.forEach((item,i)=>{
+total += item.harga*item.qty;
+
+items.innerHTML += `
+<div class="cart-item">
+${item.nama} (${item.satuan}) x${item.qty}
+<button onclick="removeItem(${i})">X</button>
+</div>`;
+});
+
+document.getElementById("cart-count").innerText = cart.length;
+document.getElementById("total").innerText = total;
+}
+
+function removeItem(i){
+cart.splice(i,1);
+saveCart();
+}
+
+function toggleCart(){
+let c = document.getElementById("cart-popup");
+c.style.display = c.style.display==="block"?"none":"block";
+}
+
+/* CHECKOUT */
+function checkout(){
+if(cart.length===0){
+alert("Keranjang kosong");
+return;
+}
+
+let pesan="Halo saya mau pesan:%0A";
+let total=0;
+
+cart.forEach((item,i)=>{
+pesan += (i+1)+". "+item.nama+" ("+item.satuan+") x"+item.qty+"%0A";
+total += item.harga*item.qty;
+});
+
+pesan += "%0ATotal: Rp "+total;
+
+window.open("https://wa.me/6282285712293?text="+pesan);
+}
+
+renderProducts();
+updateCart();
+</script>
+
 </body>
-</html>
+  </html>

@@ -3,110 +3,230 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVI STORE MANOKWARI</title>
+<title>Stok Toko Pro</title>
+
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
 <style>
-body { font-family: Arial; margin:0; background:#f5f5f5;}
-header { background:#4CAF50; color:white; padding:15px; text-align:center;}
-.container { padding:10px;}
-.card { background:white; padding:10px; margin:10px 0; border-radius:10px;}
-input, button { padding:10px; margin:5px 0; width:100%;}
-button { background:#4CAF50; color:white; border:none; border-radius:5px;}
-img { width:100%; max-height:150px; object-fit:cover;}
+body {font-family: Arial; background:#f5f5f5; margin:0;}
+header {background:#28a745; color:white; padding:15px; text-align:center;}
+.container {padding:10px; max-width:600px; margin:auto;}
+input, select {width:100%; padding:10px; margin-bottom:8px;}
+.card {background:white; padding:10px; border-radius:10px; margin-bottom:10px;}
+button {padding:8px; border:none; border-radius:6px; margin-top:5px;}
+.btn {background:green; color:white;}
+.btn-out {background:red; color:white;}
 </style>
 </head>
 
 <body>
 
-<header>
-<h2>🛒 EVI STORE MANOKWARI</h2>
-</header>
+<header><h2>Stok Toko Pro</h2></header>
 
 <div class="container">
 
+<div class="card">
 <h3>Tambah Produk</h3>
-<input id="nama" placeholder="Nama Produk">
-<input id="harga" type="number" placeholder="Harga">
-<input id="stok" type="number" placeholder="Stok Awal">
-<input id="foto" placeholder="Link Foto (URL)">
-<button onclick="tambahProduk()">Tambah</button>
+<input id="nama" placeholder="Nama barang">
+<input id="barcodeInput" placeholder="Barcode (auto jika kosong)">
+<select id="satuan">
+<option>PCS</option>
+<option>CRT</option>
+</select>
+<input type="number" id="stok" placeholder="Stok awal">
+<button class="btn" onclick="tambahProduk()">Simpan</button>
+</div>
 
-<h3>Daftar Produk</h3>
-<div id="list"></div>
+<button onclick="startScanner()">Scan Barcode</button>
+<div id="reader"></div>
+
+<input id="search" placeholder="Cari barcode..." onkeyup="cariProduk(event)">
+
+<div id="hasil"></div>
+
+<h3>Riwayat Transaksi</h3>
+<div id="riwayat"></div>
 
 </div>
 
 <script>
-let produk = JSON.parse(localStorage.getItem("produk")) || [];
 
-function simpan() {
-  localStorage.setItem("produk", JSON.stringify(produk));
+let db = JSON.parse(localStorage.getItem("db")) || [];
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
+// SAVE
+function save(){
+ localStorage.setItem("db", JSON.stringify(db));
+ localStorage.setItem("history", JSON.stringify(history));
 }
 
-function tampil() {
-  let html = "";
-  produk.forEach((p, i) => {
-    html += `
-    <div class="card">
-      <img src="${p.foto}">
-      <h4>${p.nama}</h4>
-      <p>Harga: Rp ${p.harga}</p>
-      <p>Stok: ${p.stok}</p>
-
-      <input type="number" placeholder="Barang Masuk" onchange="masuk(${i}, this.value)">
-      <input type="number" placeholder="Barang Keluar" onchange="keluar(${i}, this.value)">
-
-      <button onclick="hapus(${i})">Hapus</button>
-      <button onclick="share(${i})">Share WA</button>
-    </div>
-    `;
-  });
-  document.getElementById("list").innerHTML = html;
+// BARCODE
+function genBarcode(){
+ return Date.now().toString();
 }
 
-function tambahProduk() {
-  let p = {
-    nama: nama.value,
-    harga: harga.value,
-    stok: parseInt(stok.value),
-    foto: foto.value
-  };
-  produk.push(p);
-  simpan();
-  tampil();
+// TAMBAH PRODUK
+function tambahProduk(){
+ let nama = document.getElementById("nama").value;
+ let barcode = document.getElementById("barcodeInput").value || genBarcode();
+ let satuan = document.getElementById("satuan").value;
+ let stok = parseInt(document.getElementById("stok").value);
+
+ if(!nama || !stok){alert("Lengkapi data"); return;}
+
+ db.push({nama, barcode, satuan, stok});
+ save();
+ alert("Tersimpan");
 }
 
-function masuk(i, val) {
-  produk[i].stok += parseInt(val || 0);
-  simpan();
-  tampil();
+// CARI
+function cariProduk(e){
+ if(e.key==="Enter"){
+  tampilProduk(document.getElementById("search").value);
+ }
 }
 
-function keluar(i, val) {
-  let keluar = parseInt(val || 0);
-  if (produk[i].stok - keluar < 0) {
-    alert("Stok tidak cukup!");
-    return;
+function tampilProduk(code){
+ let p = db.find(x=>x.barcode===code);
+
+ if(!p){
+  document.getElementById("hasil").innerHTML="Tidak ditemukan";
+  return;
+ }
+
+ document.getElementById("hasil").innerHTML=`
+  <div class="card">
+    <b>${p.nama}</b><br>
+    Stok: ${p.stok} ${p.satuan}<br>
+
+    <input id="qty" type="number" placeholder="Jumlah">
+
+    <button class="btn" onclick="masuk('${p.barcode}')">Masuk</button>
+    <button class="btn-out" onclick="keluar('${p.barcode}')">Keluar</button>
+
+    <button onclick="printStruk('${p.barcode}')">Print Struk</button>
+    <button onclick="printBarcode('${p.barcode}')">Print Barcode</button>
+
+    <svg id="bcode"></svg>
+  </div>
+ `;
+
+ JsBarcode("#bcode", p.barcode);
+}
+
+// MASUK
+function masuk(code){
+ let qty = parseInt(document.getElementById("qty").value);
+ let p = db.find(x=>x.barcode===code);
+
+ if(!qty){alert("Isi jumlah"); return;}
+
+ p.stok += qty;
+
+ history.push({
+  tipe:"MASUK",
+  nama:p.nama,
+  qty,
+  waktu:new Date().toLocaleString()
+ });
+
+ save();
+ tampilProduk(code);
+ renderHistory();
+}
+
+// KELUAR
+function keluar(code){
+ let qty = parseInt(document.getElementById("qty").value);
+ let p = db.find(x=>x.barcode===code);
+
+ if(!qty || p.stok < qty){
+  alert("Stok tidak cukup");
+  return;
+ }
+
+ p.stok -= qty;
+
+ history.push({
+  tipe:"KELUAR",
+  nama:p.nama,
+  qty,
+  waktu:new Date().toLocaleString()
+ });
+
+ save();
+ tampilProduk(code);
+ renderHistory();
+}
+
+// RIWAYAT
+function renderHistory(){
+ let html="";
+ history.slice().reverse().forEach(h=>{
+  html+=`
+   <div class="card">
+    ${h.tipe} - ${h.nama}<br>
+    ${h.qty} pcs<br>
+    ${h.waktu}
+   </div>
+  `;
+ });
+ document.getElementById("riwayat").innerHTML=html;
+}
+
+// SCAN
+function startScanner(){
+ const scanner = new Html5Qrcode("reader");
+
+ scanner.start({facingMode:"environment"},{fps:10,qrbox:250},
+  (text)=>{
+    document.getElementById("search").value=text;
+    tampilProduk(text);
+    scanner.stop();
+    document.getElementById("reader").innerHTML="";
   }
-  produk[i].stok -= keluar;
-  simpan();
-  tampil();
+ );
 }
 
-function hapus(i) {
-  produk.splice(i, 1);
-  simpan();
-  tampil();
+// PRINT STRUK
+function printStruk(code){
+ let p = db.find(x=>x.barcode===code);
+
+ let win = window.open("","","width=300,height=400");
+ win.document.write(`
+  <h3>Struk Stok</h3>
+  ${p.nama}<br>
+  Stok sekarang: ${p.stok}<br>
+  ${new Date().toLocaleString()}
+ `);
+ win.print();
 }
 
-function share(i) {
-  let p = produk[i];
-  let text = `🛒 ${p.nama}
-Harga: Rp ${p.harga}
-Stok: ${p.stok}`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+// PRINT BARCODE
+function printBarcode(code){
+ let win = window.open("","","width=300,height=400");
+
+ win.document.write(`
+  <html>
+  <head>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode"><\/script>
+  </head>
+  <body>
+    <svg id="b"></svg>
+    <script>
+      JsBarcode("#b","${code}");
+      window.print();
+    <\/script>
+  </body>
+  </html>
+ `);
+
+ win.document.close();
 }
 
-tampil();
+renderHistory();
+
 </script>
 
 </body>

@@ -3,175 +3,201 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Toko Pro Firebase</title>
+<title>EVI STORE MANOKWARI</title>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<!-- Firebase Modular -->
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
+  authDomain: "evi-store-manokwari.firebaseapp.com",
+  projectId: "evi-store-manokwari",
+  storageBucket: "evi-store-manokwari.firebasestorage.app",
+  messagingSenderId: "630399354196",
+  appId: "1:630399354196:web:78cecc396191345ebff4c1"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+/* LOGIN */
+window.login = async () => {
+  const email = emailInput.value;
+  const pass = passwordInput.value;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+/* AUTO LOGIN */
+onAuthStateChanged(auth, user => {
+  if(user){
+    loginBox.style.display="none";
+    appBox.style.display="block";
+    loadProduk();
+  }
+});
+
+/* LOAD PRODUK */
+function loadProduk(){
+  onSnapshot(collection(db,"produk"), snap=>{
+    list.innerHTML="";
+    snap.forEach(doc=>{
+      let p = doc.data();
+
+      list.innerHTML += `
+      <div class="product">
+        <img src="${p.foto}">
+        <h4>${p.nama}</h4>
+        <p>Rp ${p.harga}</p>
+        <p>Stok: ${p.stok} PCS</p>
+
+        <button onclick="checkout('${p.nama}',${p.harga})">
+        Beli via WA
+        </button>
+      </div>`;
+    });
+  });
+}
+
+/* TAMBAH PRODUK */
+window.tambah = async () => {
+  const file = foto.files[0];
+
+  if(!file) return alert("Foto wajib!");
+
+  const storageRef = ref(storage, "produk/"+file.name);
+  await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(storageRef);
+
+  await addDoc(collection(db,"produk"),{
+    nama: nama.value,
+    harga: +harga.value,
+    stok: +stok.value,
+    pack: +pack.value || 1,
+    crt: +crt.value || 1,
+    foto: url
+  });
+ 
+  alert("Produk ditambahkan!");
+};
+
+/* CHECKOUT WA */
+window.checkout = (nama, harga) => {
+  let pesan = `Halo, saya mau beli ${nama} harga Rp${harga}`;
+  let no = "6282285712293"; // nomor WA kamu
+  window.open(`https://wa.me/${no}?text=${encodeURIComponent(pesan)}`);
+};
+
+</script>
 
 <style>
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background:#eef2f7;
-  margin:0;
+  font-family:sans-serif;
+  background:#f4f6fb;
 }
 
 .navbar {
-  background:#007bff;
+  background:#1e88e5;
   color:white;
   padding:15px;
   text-align:center;
   font-size:20px;
 }
 
-.container {
-  padding:15px;
-}
+.container { padding:15px; }
 
 .card {
   background:white;
   padding:15px;
   border-radius:12px;
   margin-bottom:15px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
 }
 
-input, select {
-  width:100%;
-  padding:10px;
-  margin:5px 0;
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:15px;
 }
-
-button {
-  padding:10px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-.btn { background:#007bff; color:white; }
-.grid { display:flex; flex-wrap:wrap; gap:15px; }
 
 .product {
-  width:180px;
   background:white;
   border-radius:10px;
   padding:10px;
   text-align:center;
+  box-shadow:0 3px 10px rgba(0,0,0,0.1);
 }
 
 .product img {
   width:100%;
-  height:120px;
+  height:130px;
   object-fit:cover;
-  border-radius:8px;
+}
+
+button {
+  background:#1e88e5;
+  color:white;
+  border:none;
+  padding:8px;
+  border-radius:6px;
+  cursor:pointer;
 }
 </style>
 </head>
+
 <body>
 
-<div class="navbar">Toko Online Pro</div>
+<div class="navbar">EVI STORE MANOKWARI</div>
 
 <div class="container">
 
 <!-- LOGIN -->
 <div class="card" id="loginBox">
   <h3>Login Admin</h3>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button class="btn" onclick="login()">Login</button>
+  <input id="emailInput" placeholder="Email">
+  <input id="passwordInput" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none">
+<div id="appBox" style="display:none">
 
 <div class="card">
 <h3>Tambah Produk</h3>
 <input id="nama" placeholder="Nama">
-<input id="harga" type="number" placeholder="Harga PCS">
-<input id="stok" type="number" placeholder="Stok PCS">
-<input id="pack" type="number" placeholder="1 Pack = ? PCS">
-<input id="crt" type="number" placeholder="1 CRT = ? PCS">
+<input id="harga" type="number" placeholder="Harga">
+<input id="stok" type="number" placeholder="Stok">
+<input id="pack" type="number" placeholder="1 Pack = PCS">
+<input id="crt" type="number" placeholder="1 CRT = PCS">
 <input type="file" id="foto">
-<button class="btn" onclick="tambah()">Simpan</button>
+<button onclick="tambah()">Simpan</button>
 </div>
 
-<h3>Produk</h3>
-<div id="list" class="grid"></div>
+<h3>Catalog Produk</h3>
+<div id="list" class="grid"></div> 
 
 </div>
 
 </div>
-
-<script>
-  const firebaseConfig = {
-  apiKey: "AIzaSyBYkPd9KaoJoSEAhO2BsVz8P76GnNJuVnY",
-  authDomain: "smarttoko-cfa75.firebaseapp.com",
-  projectId: "smarttoko-cfa75",
-  storageBucket: "smarttoko-cfa75.firebasestorage.app",
-  messagingSenderId: "408497647205",
-  appId: "1:408497647205:web:cedd0b3ec9775c4897e08c",
-  measurementId: "G-PV0T28BK91"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-/* LOGIN */
-function login(){
-  let email = document.getElementById("email").value;
-  let pass = document.getElementById("password").value;
-
-  auth.signInWithEmailAndPassword(email, pass)
-  .then(()=>{
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("app").style.display="block";
-    loadProduk();
-  })
-  .catch(e=>alert(e.message));
-}
-
-/* LOAD PRODUK REALTIME */
-function loadProduk(){
-  db.collection("produk").onSnapshot(res=>{
-    let el = document.getElementById("list");
-    el.innerHTML="";
-
-    res.forEach(doc=>{
-      let p = doc.data();
-
-      el.innerHTML += `
-      <div class="product">
-        <img src="${p.foto}">
-        <h4>${p.nama}</h4>
-        <p>Stok: ${p.stok}</p>
-        <p>Rp ${p.harga}</p>
-      </div>
-      `;
-    });
-  });
-}
-
-/* TAMBAH */
-function tambah(){
-  let nama = document.getElementById("nama").value;
-  let harga = +document.getElementById("harga").value;
-  let stok = +document.getElementById("stok").value;
-  let pack = +document.getElementById("pack").value || 1;
-  let crt = +document.getElementById("crt").value || 1;
-  let file = document.getElementById("foto").files[0];
-
-  let reader = new FileReader();
-  reader.onload = e=>{
-    db.collection("produk").add({
-      nama, harga, stok, pack, crt,
-      foto:e.target.result
-    });
-  };
-  reader.readAsDataURL(file);
-}
-</script>
 
 </body>
 </html>

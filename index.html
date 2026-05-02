@@ -1,15 +1,8 @@
-<!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html><html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>EVI STORE MANOKWARI</title>
-
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-
-<style>
+<title>EVI STORE MANOKWARI</title><link rel="manifest" href="manifest.json"><style>
 body {
   font-family: 'Segoe UI', sans-serif;
   background: #f4f6fb;
@@ -90,64 +83,40 @@ button:hover {
   border-radius: 5px;
   font-size: 12px;
 }
-</style>
 
-</head>
-<body>
-
-<div class="navbar">EVI STORE MANOKWARI</div>
-
-<div class="container">
-
-<!-- LOGIN -->
-<div class="card" id="loginBox">
+.preview {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-top: 5px;
+}
+</style></head><body><div class="navbar">EVI STORE MANOKWARI</div><div class="container"><div class="card" id="loginBox">
   <h3>Login Admin</h3>
   <input id="emailInput" placeholder="Email">
   <input id="passwordInput" type="password" placeholder="Password">
   <button onclick="login()">Login</button>
-</div>
-
-<!-- APP -->
-<div id="appBox" style="display:none">
-
-<div class="card">
-<h3>Tambah Produk</h3>
-
-<input id="nama" placeholder="Nama Produk">
+</div><div id="appBox" style="display:none"><div class="card">
+<h3>Tambah Produk</h3><input id="nama" placeholder="Nama Produk">
 <input id="harga" type="number" placeholder="Harga">
-
-<input id="stok" type="number" placeholder="Jumlah">
-<select id="satuan">
+<input id="stok" type="number" placeholder="Jumlah"><select id="satuan">
   <option value="pcs">PCS</option>
   <option value="pack">PACK</option>
   <option value="crt">CRT</option>
-</select>
+</select><input id="pack" type="number" placeholder="1 Pack = PCS">
+<input id="crt" type="number" placeholder="1 CRT = PCS"><input type="file" id="foto" onchange="previewGambar()">
+<img id="preview" class="preview" style="display:none"><button onclick="tambah()">Simpan Produk</button>
 
-<input id="pack" type="number" placeholder="1 Pack = PCS">
-<input id="crt" type="number" placeholder="1 CRT = PCS">
-
-<input type="file" id="foto">
-
-<button onclick="tambah()">Simpan Produk</button>
-</div>
-
-<div class="card">
+</div><div class="card">
 <h3>Catalog Produk</h3>
 <div id="list" class="grid"></div>
-</div>
-
-</div>
-
-</div>
-
-<!-- FIREBASE -->
-<script type="module">
+</div></div>
+</div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-/* CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
   authDomain: "evi-store-manokwari.firebaseapp.com",
@@ -157,28 +126,24 @@ const firebaseConfig = {
   appId: "1:630399354196:web:78cecc396191345ebff4c1"
 };
 
-/* INIT */
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-/* ELEMENT */
 const loginBox = document.getElementById("loginBox");
 const appBox = document.getElementById("appBox");
 const list = document.getElementById("list");
 
 /* LOGIN */
 window.login = async () => {
-  const email = document.getElementById("emailInput").value;
-  const password = document.getElementById("passwordInput").value;
-
-  if(!email || !password) return alert("Isi email & password!");
+  const email = emailInput.value;
+  const password = passwordInput.value;
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
   } catch (e) {
-    alert("Login gagal: " + e.message);
+    alert("Login gagal!");
   }
 };
 
@@ -191,7 +156,7 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-/* LOAD PRODUK */
+/* LOAD */
 function loadProduk(){
   onSnapshot(collection(db,"produk"), snap=>{
     list.innerHTML="";
@@ -204,33 +169,39 @@ function loadProduk(){
         <h4>${p.nama}</h4>
         <p>Rp ${p.harga.toLocaleString()}</p>
         <p><span class="badge">Stok: ${p.stok}</span></p>
-
-        <button onclick="checkout('${d.id}','${p.nama}',${p.harga},${p.stok})">
-        Beli
-        </button>
+        <button onclick="checkout('${d.id}','${p.nama}',${p.harga},${p.stok})">Beli</button>
       </div>`;
     });
   });
 }
 
-/* TAMBAH PRODUK */
+/* PREVIEW */
+window.previewGambar = () => {
+  const file = foto.files[0];
+  if(file){
+    preview.src = URL.createObjectURL(file);
+    preview.style.display="block";
+  }
+};
+
+/* TAMBAH */
 window.tambah = async () => {
 
-  const nama = document.getElementById("nama").value;
-  const harga = +document.getElementById("harga").value;
-  const stok = +document.getElementById("stok").value;
-  const satuan = document.getElementById("satuan").value;
-  const pack = +document.getElementById("pack").value || 1;
-  const crt = +document.getElementById("crt").value || 1;
-  const file = document.getElementById("foto").files[0];
+  const nama = namaInput.value;
+  const harga = +hargaInput.value;
+  const stok = +stokInput.value;
+  const satuan = satuan.value;
+  const pack = +packInput.value || 1;
+  const crt = +crtInput.value || 1;
+  const file = foto.files[0];
 
   if(!nama || !harga || !stok || !file){
     return alert("Data belum lengkap!");
   }
 
   let stokFinal = stok;
-  if(satuan === "pack") stokFinal = stok * pack;
-  if(satuan === "crt") stokFinal = stok * crt;
+  if(satuan==="pack") stokFinal = stok * pack;
+  if(satuan==="crt") stokFinal = stok * crt;
 
   const storageRef = ref(storage, "produk/"+Date.now()+"_"+file.name);
   await uploadBytes(storageRef, file);
@@ -243,42 +214,26 @@ window.tambah = async () => {
     foto: url
   });
 
-  alert("Produk berhasil ditambahkan!");
+  alert("Berhasil!");
+
+  document.querySelectorAll("input").forEach(i=>i.value="");
+  preview.style.display="none";
 };
 
-/* CHECKOUT + STOK BERKURANG */
+/* CHECKOUT */
 window.checkout = async (id, nama, harga, stok) => {
+  if(stok<=0) return alert("Stok habis!");
 
-  if(stok <= 0){
-    alert("Stok habis!");
-    return;
-  }
+  await updateDoc(doc(db,"produk",id),{
+    stok: stok - 1
+  });
 
-  try{
-    const refDoc = doc(db, "produk", id);
-
-    await updateDoc(refDoc, {
-      stok: stok - 1
-    });
-
-    let pesan = `Halo, saya mau beli ${nama} harga Rp${harga}`;
-    let no = "6282285712293";
-
-    window.open(`https://wa.me/${no}?text=${encodeURIComponent(pesan)}`);
-
-  }catch(e){
-    alert("Gagal transaksi: " + e.message);
-  }
+  let pesan = `Halo saya mau beli ${nama} Rp${harga}`;
+  window.open(`https://wa.me/6282285712293?text=${encodeURIComponent(pesan)}`);
 };
-
-</script>
-
-<!-- SERVICE WORKER -->
-<script>
+</script><script>
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js");
 }
-</script>
-
-</body>
+</script></body>
 </html>

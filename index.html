@@ -5,46 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EVI STORE MANOKWARI</title>
 
-<!-- Firebase Modular -->
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
+/* CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
   authDomain: "evi-store-manokwari.firebaseapp.com",
   projectId: "evi-store-manokwari",
-  storageBucket: "evi-store-manokwari.firebasestorage.app",
+  storageBucket: "evi-store-manokwari.appspot.com", // ⚠️ ini harus .appspot.com
   messagingSenderId: "630399354196",
   appId: "1:630399354196:web:78cecc396191345ebff4c1"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
+/* INIT */
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+/* AMBIL ELEMENT */
+const emailInput = document.getElementById("emailInput");
+const passwordInput = document.getElementById("passwordInput");
+const loginBox = document.getElementById("loginBox");
+const appBox = document.getElementById("appBox");
+const list = document.getElementById("list");
+
 /* LOGIN */
 window.login = async () => {
-  const email = emailInput.value;
-  const pass = passwordInput.value;
-
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
+    await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
   } catch (e) {
-    alert(e.message);
+    alert("Login gagal: " + e.message);
   }
 };
 
@@ -70,7 +65,6 @@ function loadProduk(){
         <h4>${p.nama}</h4>
         <p>Rp ${p.harga}</p>
         <p>Stok: ${p.stok} PCS</p>
-
         <button onclick="checkout('${p.nama}',${p.harga})">
         Beli via WA
         </button>
@@ -81,86 +75,44 @@ function loadProduk(){
 
 /* TAMBAH PRODUK */
 window.tambah = async () => {
-  const file = foto.files[0];
+  const file = document.getElementById("foto").files[0];
 
   if(!file) return alert("Foto wajib!");
 
-  const storageRef = ref(storage, "produk/"+file.name);
+  const storageRef = ref(storage, "produk/"+Date.now()+"_"+file.name);
   await uploadBytes(storageRef, file);
   const url = await getDownloadURL(storageRef);
 
   await addDoc(collection(db,"produk"),{
-    nama: nama.value,
-    harga: +harga.value,
-    stok: +stok.value,
-    pack: +pack.value || 1,
-    crt: +crt.value || 1,
+    nama: document.getElementById("nama").value,
+    harga: +document.getElementById("harga").value,
+    stok: +document.getElementById("stok").value,
+    pack: +document.getElementById("pack").value || 1,
+    crt: +document.getElementById("crt").value || 1,
     foto: url
   });
- 
+
   alert("Produk ditambahkan!");
 };
 
 /* CHECKOUT WA */
 window.checkout = (nama, harga) => {
   let pesan = `Halo, saya mau beli ${nama} harga Rp${harga}`;
-  let no = "6282285712293"; // nomor WA kamu
+  let no = "6282285712293";
   window.open(`https://wa.me/${no}?text=${encodeURIComponent(pesan)}`);
 };
 
 </script>
 
 <style>
-body {
-  font-family:sans-serif;
-  background:#f4f6fb;
-}
-
-.navbar {
-  background:#1e88e5;
-  color:white;
-  padding:15px;
-  text-align:center;
-  font-size:20px;
-}
-
+body { font-family:sans-serif; background:#f4f6fb; }
+.navbar { background:#1e88e5; color:white; padding:15px; text-align:center; }
 .container { padding:15px; }
-
-.card {
-  background:white;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-}
-
-.grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:15px;
-}
-
-.product {
-  background:white;
-  border-radius:10px;
-  padding:10px;
-  text-align:center;
-  box-shadow:0 3px 10px rgba(0,0,0,0.1);
-}
-
-.product img {
-  width:100%;
-  height:130px;
-  object-fit:cover;
-}
-
-button {
-  background:#1e88e5;
-  color:white;
-  border:none;
-  padding:8px;
-  border-radius:6px;
-  cursor:pointer;
-}
+.card { background:white; padding:15px; border-radius:12px; margin-bottom:15px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:15px; }
+.product { background:white; padding:10px; border-radius:10px; text-align:center; }
+.product img { width:100%; height:130px; object-fit:cover; }
+button { background:#1e88e5; color:white; border:none; padding:8px; border-radius:6px; }
 </style>
 </head>
 
@@ -170,7 +122,6 @@ button {
 
 <div class="container">
 
-<!-- LOGIN -->
 <div class="card" id="loginBox">
   <h3>Login Admin</h3>
   <input id="emailInput" placeholder="Email">
@@ -178,7 +129,6 @@ button {
   <button onclick="login()">Login</button>
 </div>
 
-<!-- APP -->
 <div id="appBox" style="display:none">
 
 <div class="card">
@@ -193,7 +143,7 @@ button {
 </div>
 
 <h3>Catalog Produk</h3>
-<div id="list" class="grid"></div> 
+<div id="list" class="grid"></div>
 
 </div>
 

@@ -3,305 +3,174 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Katalog Toko Pro</title>
+<title>Toko Pro Firebase</title>
 
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode"></script>
-<script src="https://unpkg.com/html5-qrcode"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 
 <style>
 body {
-  font-family: Arial;
-  background:#f5f5f5;
+  font-family: 'Segoe UI', sans-serif;
+  background:#eef2f7;
   margin:0;
 }
-header {
-  background:#28a745;
+
+.navbar {
+  background:#007bff;
   color:white;
   padding:15px;
   text-align:center;
+  font-size:20px;
 }
+
 .container {
-  padding:10px;
-  max-width:650px;
-  margin:auto;
+  padding:15px;
 }
+
+.card {
+  background:white;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
 input, select {
   width:100%;
   padding:10px;
-  margin-bottom:8px;
-  border-radius:6px;
-  border:1px solid #ccc;
+  margin:5px 0;
 }
-.card {
-  background:white;
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:10px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
+
 button {
-  padding:8px;
+  padding:10px;
   border:none;
   border-radius:6px;
-  margin-top:5px;
   cursor:pointer;
 }
-.btn {background:green; color:white;}
-.btn-out {background:red; color:white;}
-img {
+
+.btn { background:#007bff; color:white; }
+.grid { display:flex; flex-wrap:wrap; gap:15px; }
+
+.product {
+  width:180px;
+  background:white;
+  border-radius:10px;
+  padding:10px;
+  text-align:center;
+}
+
+.product img {
   width:100%;
-  max-height:150px;
+  height:120px;
   object-fit:cover;
   border-radius:8px;
-  margin-bottom:8px;
 }
 </style>
 </head>
-
 <body>
 
-<header><h2>Katalog Toko Pro</h2></header>
+<div class="navbar">Toko Online Pro</div>
 
 <div class="container">
 
-<div class="card">
-<h3>Tambah Produk</h3>
-
-<input id="nama" placeholder="Nama barang">
-<input id="barcodeInput" placeholder="Barcode (otomatis jika kosong)">
-<select id="satuan">
-<option>PCS</option>
-<option>CRT</option>
-</select>
-
-<input type="number" id="stok" placeholder="Stok awal">
-
-<label>Upload Foto</label>
-<input type="file" id="foto" accept="image/*">
-
-<button class="btn" onclick="tambahProduk()">Simpan</button>
+<!-- LOGIN -->
+<div class="card" id="loginBox">
+  <h3>Login Admin</h3>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button class="btn" onclick="login()">Login</button>
 </div>
 
-<button onclick="startScanner()">Scan Barcode</button>
-<div id="reader"></div>
+<!-- APP -->
+<div id="app" style="display:none">
 
-<input id="search" placeholder="Cari barcode..." onkeyup="cariProduk(event)">
+<div class="card">
+<h3>Tambah Produk</h3>
+<input id="nama" placeholder="Nama">
+<input id="harga" type="number" placeholder="Harga PCS">
+<input id="stok" type="number" placeholder="Stok PCS">
+<input id="pack" type="number" placeholder="1 Pack = ? PCS">
+<input id="crt" type="number" placeholder="1 CRT = ? PCS">
+<input type="file" id="foto">
+<button class="btn" onclick="tambah()">Simpan</button>
+</div>
 
-<div id="hasil"></div>
+<h3>Produk</h3>
+<div id="list" class="grid"></div>
 
-<h3>Riwayat Transaksi</h3>
-<div id="riwayat"></div>
+</div>
 
 </div>
 
 <script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyBYkPd9KaoJoSEAhO2BsVz8P76GnNJuVnY",
+  authDomain: "smarttoko-cfa75.firebaseapp.com",
+  projectId: "smarttoko-cfa75",
+  storageBucket: "smarttoko-cfa75.firebasestorage.app",
+  messagingSenderId: "408497647205",
+  appId: "1:408497647205:web:cedd0b3ec9775c4897e08c",
+  measurementId: "G-PV0T28BK91"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-let db = JSON.parse(localStorage.getItem("db")) || [];
-let history = JSON.parse(localStorage.getItem("history")) || [];
+/* LOGIN */
+function login(){
+  let email = document.getElementById("email").value;
+  let pass = document.getElementById("password").value;
 
-// SAVE
-function save(){
- localStorage.setItem("db", JSON.stringify(db));
- localStorage.setItem("history", JSON.stringify(history));
+  auth.signInWithEmailAndPassword(email, pass)
+  .then(()=>{
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("app").style.display="block";
+    loadProduk();
+  })
+  .catch(e=>alert(e.message));
 }
 
-// BARCODE AUTO
-function genBarcode(){
- return Date.now().toString();
+/* LOAD PRODUK REALTIME */
+function loadProduk(){
+  db.collection("produk").onSnapshot(res=>{
+    let el = document.getElementById("list");
+    el.innerHTML="";
+
+    res.forEach(doc=>{
+      let p = doc.data();
+
+      el.innerHTML += `
+      <div class="product">
+        <img src="${p.foto}">
+        <h4>${p.nama}</h4>
+        <p>Stok: ${p.stok}</p>
+        <p>Rp ${p.harga}</p>
+      </div>
+      `;
+    });
+  });
 }
 
-// CONVERT FOTO KE BASE64
-function getBase64(file){
- return new Promise((resolve,reject)=>{
-  const reader = new FileReader();
+/* TAMBAH */
+function tambah(){
+  let nama = document.getElementById("nama").value;
+  let harga = +document.getElementById("harga").value;
+  let stok = +document.getElementById("stok").value;
+  let pack = +document.getElementById("pack").value || 1;
+  let crt = +document.getElementById("crt").value || 1;
+  let file = document.getElementById("foto").files[0];
+
+  let reader = new FileReader();
+  reader.onload = e=>{
+    db.collection("produk").add({
+      nama, harga, stok, pack, crt,
+      foto:e.target.result
+    });
+  };
   reader.readAsDataURL(file);
-  reader.onload = ()=>resolve(reader.result);
-  reader.onerror = error=>reject(error);
- });
 }
-
-// TAMBAH PRODUK
-async function tambahProduk(){
- let nama = document.getElementById("nama").value;
- let barcode = document.getElementById("barcodeInput").value || genBarcode();
- let satuan = document.getElementById("satuan").value;
- let stok = parseInt(document.getElementById("stok").value);
- let file = document.getElementById("foto").files[0];
-
- if(!nama || !stok){
-  alert("Lengkapi data!");
-  return;
- }
-
- let foto = "";
- if(file){
-  foto = await getBase64(file);
- }
-
- db.push({nama, barcode, satuan, stok, foto});
- save();
-
- alert("Produk berhasil disimpan!");
-
- document.getElementById("nama").value="";
- document.getElementById("barcodeInput").value="";
- document.getElementById("stok").value="";
- document.getElementById("foto").value="";
-}
-
-// CARI
-function cariProduk(e){
- if(e.key==="Enter"){
-  tampilProduk(document.getElementById("search").value);
- }
-}
-
-// TAMPIL PRODUK
-function tampilProduk(code){
- let p = db.find(x=>x.barcode===code);
-
- if(!p){
-  document.getElementById("hasil").innerHTML="Tidak ditemukan";
-  return;
- }
-
- document.getElementById("hasil").innerHTML=`
-  <div class="card">
-    ${p.foto ? `<img src="${p.foto}">` : ""}
-
-    <b>${p.nama}</b><br>
-    Stok: ${p.stok} ${p.satuan}<br>
-
-    <input id="qty" type="number" placeholder="Jumlah">
-
-    <button class="btn" onclick="masuk('${p.barcode}')">Masuk</button>
-    <button class="btn-out" onclick="keluar('${p.barcode}')">Keluar</button>
-
-    <button onclick="printStruk('${p.barcode}')">Print Struk</button>
-    <button onclick="printBarcode('${p.barcode}')">Print Barcode</button>
-
-    <svg id="bcode"></svg>
-  </div>
- `;
-
- JsBarcode("#bcode", p.barcode);
-}
-
-// MASUK
-function masuk(code){
- let qty = parseInt(document.getElementById("qty").value);
- let p = db.find(x=>x.barcode===code);
-
- if(!qty){
-  alert("Isi jumlah!");
-  return;
- }
-
- p.stok += qty;
-
- history.push({
-  tipe:"MASUK",
-  nama:p.nama,
-  qty,
-  waktu:new Date().toLocaleString()
- });
-
- save();
- tampilProduk(code);
- renderHistory();
-}
-
-// KELUAR
-function keluar(code){
- let qty = parseInt(document.getElementById("qty").value);
- let p = db.find(x=>x.barcode===code);
-
- if(!qty || p.stok < qty){
-  alert("Stok tidak cukup!");
-  return;
- }
-
- p.stok -= qty;
-
- history.push({
-  tipe:"KELUAR",
-  nama:p.nama,
-  qty,
-  waktu:new Date().toLocaleString()
- });
-
- save();
- tampilProduk(code);
- renderHistory();
-}
-
-// RIWAYAT
-function renderHistory(){
- let html="";
- history.slice().reverse().forEach(h=>{
-  html+=`
-   <div class="card">
-    <b>${h.tipe}</b> - ${h.nama}<br>
-    ${h.qty}<br>
-    ${h.waktu}
-   </div>
-  `;
- });
- document.getElementById("riwayat").innerHTML=html;
-}
-
-// SCANNER
-function startScanner(){
- const scanner = new Html5Qrcode("reader");
-
- scanner.start({facingMode:"environment"},{fps:10,qrbox:250},
-  (text)=>{
-    document.getElementById("search").value=text;
-    tampilProduk(text);
-    scanner.stop();
-    document.getElementById("reader").innerHTML="";
-  }
- );
-}
-
-// PRINT STRUK
-function printStruk(code){
- let p = db.find(x=>x.barcode===code);
-
- let win = window.open("","","width=300,height=400");
- win.document.write(`
-  <h3>Struk Stok</h3>
-  ${p.nama}<br>
-  Stok sekarang: ${p.stok}<br>
-  ${new Date().toLocaleString()}
- `);
- win.print();
-}
-
-// PRINT BARCODE
-function printBarcode(code){
- let win = window.open("","","width=300,height=400");
-
- win.document.write(`
-  <html>
-  <head>
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode"><\/script>
-  </head>
-  <body>
-    <svg id="b"></svg>
-    <script>
-      JsBarcode("#b","${code}");
-      window.print();
-    <\/script>
-  </body>
-  </html>
- `);
-
- win.document.close();
-}
-
-renderHistory();
-
 </script>
 
 </body>

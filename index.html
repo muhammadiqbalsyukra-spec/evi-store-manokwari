@@ -3,12 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>EVI STORE MANOKWARI</title>
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+
+<style>
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f4f6fb;
+  margin: 0;
+}
+
+.navbar {
+  background: linear-gradient(90deg,#1e88e5,#00acc1);
+  color: white;
+  padding: 15px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.container {
+  padding: 15px;
+  max-width: 1000px;
+  margin: auto;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  background: #1e88e5;
+  color: white;
+  border: none;
+  padding: 10px;
+  width: 100%;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #1565c0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+  gap: 15px;
+}
+
+.product {
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.product img {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.badge {
+  background: #00c853;
+  color: white;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="navbar">EVI STORE MANOKWARI</div>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div class="card" id="loginBox">
+  <h3>Login Admin</h3>
+  <input id="emailInput" placeholder="Email">
+  <input id="passwordInput" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- APP -->
+<div id="appBox" style="display:none">
+
+<div class="card">
+<h3>Tambah Produk</h3>
+
+<input id="nama" placeholder="Nama Produk">
+<input id="harga" type="number" placeholder="Harga">
+
+<input id="stok" type="number" placeholder="Jumlah">
+<select id="satuan">
+  <option value="pcs">PCS</option>
+  <option value="pack">PACK</option>
+  <option value="crt">CRT</option>
+</select>
+
+<input id="pack" type="number" placeholder="1 Pack = PCS">
+<input id="crt" type="number" placeholder="1 CRT = PCS">
+
+<input type="file" id="foto">
+
+<button onclick="tambah()">Simpan Produk</button>
+</div>
+
+<div class="card">
+<h3>Catalog Produk</h3>
+<div id="list" class="grid"></div>
+</div>
+
+</div>
+
+</div>
+
+<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 /* CONFIG */
@@ -16,7 +152,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
   authDomain: "evi-store-manokwari.firebaseapp.com",
   projectId: "evi-store-manokwari",
-  storageBucket: "evi-store-manokwari.appspot.com", // ⚠️ ini harus .appspot.com
+  storageBucket: "evi-store-manokwari.appspot.com",
   messagingSenderId: "630399354196",
   appId: "1:630399354196:web:78cecc396191345ebff4c1"
 };
@@ -27,17 +163,20 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-/* AMBIL ELEMENT */
-const emailInput = document.getElementById("emailInput");
-const passwordInput = document.getElementById("passwordInput");
+/* ELEMENT */
 const loginBox = document.getElementById("loginBox");
 const appBox = document.getElementById("appBox");
 const list = document.getElementById("list");
 
 /* LOGIN */
 window.login = async () => {
+  const email = document.getElementById("emailInput").value;
+  const password = document.getElementById("passwordInput").value;
+
+  if(!email || !password) return alert("Isi email & password!");
+
   try {
-    await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+    await signInWithEmailAndPassword(auth, email, password);
   } catch (e) {
     alert("Login gagal: " + e.message);
   }
@@ -56,17 +195,18 @@ onAuthStateChanged(auth, user => {
 function loadProduk(){
   onSnapshot(collection(db,"produk"), snap=>{
     list.innerHTML="";
-    snap.forEach(doc=>{
-      let p = doc.data();
+    snap.forEach(d=>{
+      let p = d.data();
 
       list.innerHTML += `
       <div class="product">
         <img src="${p.foto}">
         <h4>${p.nama}</h4>
-        <p>Rp ${p.harga}</p>
-        <p>Stok: ${p.stok} PCS</p>
-        <button onclick="checkout('${p.nama}',${p.harga})">
-        Beli via WA
+        <p>Rp ${p.harga.toLocaleString()}</p>
+        <p><span class="badge">Stok: ${p.stok}</span></p>
+
+        <button onclick="checkout('${d.id}','${p.nama}',${p.harga},${p.stok})">
+        Beli
         </button>
       </div>`;
     });
@@ -75,79 +215,70 @@ function loadProduk(){
 
 /* TAMBAH PRODUK */
 window.tambah = async () => {
+
+  const nama = document.getElementById("nama").value;
+  const harga = +document.getElementById("harga").value;
+  const stok = +document.getElementById("stok").value;
+  const satuan = document.getElementById("satuan").value;
+  const pack = +document.getElementById("pack").value || 1;
+  const crt = +document.getElementById("crt").value || 1;
   const file = document.getElementById("foto").files[0];
 
-  if(!file) return alert("Foto wajib!");
+  if(!nama || !harga || !stok || !file){
+    return alert("Data belum lengkap!");
+  }
+
+  let stokFinal = stok;
+  if(satuan === "pack") stokFinal = stok * pack;
+  if(satuan === "crt") stokFinal = stok * crt;
 
   const storageRef = ref(storage, "produk/"+Date.now()+"_"+file.name);
   await uploadBytes(storageRef, file);
   const url = await getDownloadURL(storageRef);
 
   await addDoc(collection(db,"produk"),{
-    nama: document.getElementById("nama").value,
-    harga: +document.getElementById("harga").value,
-    stok: +document.getElementById("stok").value,
-    pack: +document.getElementById("pack").value || 1,
-    crt: +document.getElementById("crt").value || 1,
+    nama,
+    harga,
+    stok: stokFinal,
     foto: url
   });
 
-  alert("Produk ditambahkan!");
+  alert("Produk berhasil ditambahkan!");
 };
 
-/* CHECKOUT WA */
-window.checkout = (nama, harga) => {
-  let pesan = `Halo, saya mau beli ${nama} harga Rp${harga}`;
-  let no = "6282285712293";
-  window.open(`https://wa.me/${no}?text=${encodeURIComponent(pesan)}`);
+/* CHECKOUT + STOK BERKURANG */
+window.checkout = async (id, nama, harga, stok) => {
+
+  if(stok <= 0){
+    alert("Stok habis!");
+    return;
+  }
+
+  try{
+    const refDoc = doc(db, "produk", id);
+
+    await updateDoc(refDoc, {
+      stok: stok - 1
+    });
+
+    let pesan = `Halo, saya mau beli ${nama} harga Rp${harga}`;
+    let no = "6282285712293";
+
+    window.open(`https://wa.me/${no}?text=${encodeURIComponent(pesan)}`);
+
+  }catch(e){
+    alert("Gagal transaksi: " + e.message);
+  }
 };
 
 </script>
 
-<style>
-body { font-family:sans-serif; background:#f4f6fb; }
-.navbar { background:#1e88e5; color:white; padding:15px; text-align:center; }
-.container { padding:15px; }
-.card { background:white; padding:15px; border-radius:12px; margin-bottom:15px; }
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:15px; }
-.product { background:white; padding:10px; border-radius:10px; text-align:center; }
-.product img { width:100%; height:130px; object-fit:cover; }
-button { background:#1e88e5; color:white; border:none; padding:8px; border-radius:6px; }
-</style>
-</head>
-
-<body>
-
-<div class="navbar">EVI STORE MANOKWARI</div>
-
-<div class="container">
-
-<div class="card" id="loginBox">
-  <h3>Login Admin</h3>
-  <input id="emailInput" placeholder="Email">
-  <input id="passwordInput" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-</div>
-
-<div id="appBox" style="display:none">
-
-<div class="card">
-<h3>Tambah Produk</h3>
-<input id="nama" placeholder="Nama">
-<input id="harga" type="number" placeholder="Harga">
-<input id="stok" type="number" placeholder="Stok">
-<input id="pack" type="number" placeholder="1 Pack = PCS">
-<input id="crt" type="number" placeholder="1 CRT = PCS">
-<input type="file" id="foto">
-<button onclick="tambah()">Simpan</button>
-</div>
-
-<h3>Catalog Produk</h3>
-<div id="list" class="grid"></div>
-
-</div>
-
-</div>
+<!-- SERVICE WORKER -->
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
 
 </body>
 </html>

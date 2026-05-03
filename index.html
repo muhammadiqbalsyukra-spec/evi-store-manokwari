@@ -26,8 +26,8 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 .product img{width:100%;height:120px;object-fit:cover;border-radius:6px;}
 
 .preview{width:100%;max-height:200px;object-fit:contain;background:#eee;margin-top:5px;}
-
 .cart-item{display:flex;justify-content:space-between;background:#f1f1f1;padding:5px;border-radius:6px;margin:5px 0;}
+
 .hidden{display:none;}
 </style>
 </head>
@@ -42,24 +42,39 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 
 <!-- LOGIN -->
 <div class="card" id="loginBox">
-<h3>Login Admin</h3>
-<input id="email">
-<input id="password" type="password">
+<h3>Login</h3>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
+<button onclick="showRegister()" class="btn-warning">Daftar Toko</button>
 </div>
 
+<!-- REGISTER -->
+<div class="card hidden" id="registerBox">
+<h3>Daftar Toko</h3>
+<input id="regEmail" placeholder="Email">
+<input id="regPassword" type="password" placeholder="Password">
+<input id="regNamaToko" placeholder="Nama Toko">
+<input id="regWA" placeholder="No WA (628...)">
+<button onclick="register()">Daftar</button>
+<button onclick="showLogin()" class="btn-warning">Kembali Login</button>
+</div>
+
+<!-- APP -->
 <div id="appBox" style="display:none">
 
-<!-- PROFIL TOKO -->
+<button onclick="logout()" class="btn-danger">Logout</button>
+
+<!-- PROFIL -->
 <div class="card">
 <h3>Profil Toko</h3>
-<input id="namaToko" placeholder="Nama Toko">
-<input id="noWA" placeholder="No WhatsApp (628...)">
-<button onclick="simpanToko()">Simpan Profil</button>
+<input id="namaToko">
+<input id="noWA">
+<button onclick="simpanToko()">Simpan</button>
 </div>
 
 <!-- FORM -->
-<div class="card" id="formBox">
+<div class="card">
 <h3>Tambah Produk</h3>
 <input id="nama" placeholder="Nama">
 <input id="harga" type="number" placeholder="Harga">
@@ -83,13 +98,13 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 
 <!-- CATALOG -->
 <div class="card">
-<h3>Catalog Produk</h3>
+<h3>Catalog</h3>
 <div id="list" class="grid"></div>
 </div>
 
 <!-- CART -->
 <div class="card">
-<h3>Keranjang 🛒</h3>
+<h3>Keranjang</h3>
 <div id="cartList"></div>
 <h4 id="totalHarga">Total: Rp 0</h4>
 <button onclick="checkoutCart()">Checkout</button>
@@ -100,8 +115,8 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, getDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -125,37 +140,66 @@ let tokoData=null;
 
 const isPublic = new URLSearchParams(location.search).get("view")==="public";
 
-/* LOGIN */
-window.login = async ()=>{
-  await signInWithEmailAndPassword(auth,email.value,password.value);
+/* UI SWITCH */
+window.showRegister=()=>{
+  loginBox.classList.add("hidden");
+  registerBox.classList.remove("hidden");
 };
 
-/* AUTH */
-onAuthStateChanged(auth, async u=>{
-  if(!u) return;
-  uid=u.uid;
+window.showLogin=()=>{
+  registerBox.classList.add("hidden");
+  loginBox.classList.remove("hidden");
+};
 
-  loginBox.style.display="none";
-  appBox.style.display="block";
+/* REGISTER */
+window.register = async ()=>{
+  try{
+    let u = await createUserWithEmailAndPassword(auth,regEmail.value,regPassword.value);
+    uid = u.user.uid;
 
-  await initToko();
-  loadProduk();
-});
+    await setDoc(doc(db,"toko",uid),{
+      namaToko: regNamaToko.value,
+      noWA: regWA.value,
+      owner: regEmail.value
+    });
+
+    alert("Berhasil daftar!");
+    showLogin();
+
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+/* LOGIN */
+window.login = async ()=>{
+  try{
+    let u = await signInWithEmailAndPassword(auth,email.value,password.value);
+    uid = u.user.uid;
+
+    loginBox.style.display="none";
+    appBox.style.display="block";
+
+    await initToko();
+    loadProduk();
+
+  }catch(e){
+    alert("Login gagal: "+e.message);
+  }
+};
+
+/* LOGOUT */
+window.logout = async ()=>{
+  await signOut(auth);
+  location.reload();
+};
 
 /* INIT TOKO */
 async function initToko(){
-  const refToko = doc(db,"toko",uid);
-  const snap = await getDoc(refToko);
+  let refToko = doc(db,"toko",uid);
+  let snap = await getDoc(refToko);
 
-  if(!snap.exists()){
-    await setDoc(refToko,{
-      namaToko:"Toko Baru",
-      noWA:"6280000000000",
-      owner:auth.currentUser.email
-    });
-  }
-
-  tokoData = (await getDoc(refToko)).data();
+  tokoData = snap.data();
 
   namaToko.value = tokoData.namaToko;
   noWA.value = tokoData.noWA;
@@ -169,8 +213,7 @@ window.simpanToko = async ()=>{
     namaToko:namaToko.value,
     noWA:noWA.value
   });
-  alert("Profil disimpan");
-  initToko();
+  alert("Tersimpan");
 };
 
 /* SHARE */
@@ -200,7 +243,7 @@ function loadProduk(){
         isPublic
         ? `<button onclick="addToCart('${p.nama}',${p.harga})">Tambah</button>`
         : `
-        <button onclick="edit('${d.id}','${p.nama}',${p.harga},${p.stok})" class="btn-warning">Edit</button>
+        <button onclick="edit('${d.id}','${p.nama}',${p.harga},${p.stok})">Edit</button>
         <button onclick="hapus('${d.id}')" class="btn-danger">Hapus</button>
         `
       }
@@ -309,7 +352,6 @@ window.resetForm=()=>{
   preview.src="";
 };
 
-/* PREVIEW */
 foto.onchange=()=>{
   if(foto.files[0]){
     preview.src=URL.createObjectURL(foto.files[0]);

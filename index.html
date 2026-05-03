@@ -20,14 +20,35 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 .btn-warning{background:#fb8c00;}
 .btn-share{background:#43a047;}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
 
-.product{background:#fff;padding:10px;border-radius:8px;text-align:center;}
-.product img{width:100%;height:120px;object-fit:cover;border-radius:6px;}
+.product{
+background:#fff;
+padding:10px;
+border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+text-align:left;
+}
 
-.preview{width:100%;max-height:200px;object-fit:contain;background:#eee;margin-top:5px;}
+.product img{
+width:100%;
+height:140px;
+object-fit:cover;
+border-radius:8px;
+}
 
-.cart-item{display:flex;justify-content:space-between;background:#f1f1f1;padding:5px;border-radius:6px;margin:5px 0;}
+.product h4{margin:5px 0;font-size:14px;}
+.product p{margin:2px 0;font-size:13px;color:#555;}
+
+.cart-item{
+display:flex;
+justify-content:space-between;
+background:#f1f1f1;
+padding:6px;
+border-radius:6px;
+margin:5px 0;
+font-size:13px;
+}
 
 .hidden{display:none;}
 </style>
@@ -53,12 +74,12 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 <!-- REGISTER -->
 <div class="card hidden" id="registerBox">
 <h3>Daftar Toko</h3>
-<input id="regEmail" placeholder="Email">
-<input id="regPassword" type="password" placeholder="Password">
-<input id="regNamaToko" placeholder="Nama Toko">
-<input id="regWA" placeholder="No WA (628...)">
+<input id="regEmail">
+<input id="regPassword" type="password">
+<input id="regNamaToko">
+<input id="regWA">
 <button onclick="register()">Daftar</button>
-<button onclick="showLogin()" class="btn-warning">Kembali Login</button>
+<button onclick="showLogin()" class="btn-warning">Kembali</button>
 </div>
 
 <!-- APP -->
@@ -67,7 +88,7 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 <button onclick="logout()" class="btn-danger">Logout</button>
 
 <!-- PROFIL -->
-<div class="card">
+<div class="card" id="profilBox">
 <h3>Profil Toko</h3>
 <input id="namaToko">
 <input id="noWA">
@@ -77,9 +98,9 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 <!-- FORM -->
 <div class="card" id="formBox">
 <h3>Tambah Produk</h3>
-<input id="nama" placeholder="Nama">
-<input id="harga" type="number" placeholder="Harga">
-<input id="stok" type="number" placeholder="Jumlah">
+<input id="nama">
+<input id="harga" type="number">
+<input id="stok" type="number">
 
 <select id="satuan">
 <option value="pcs">PCS</option>
@@ -87,14 +108,13 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 <option value="crt">CRT</option>
 </select>
 
-<input id="pack" placeholder="1 Pack = PCS">
-<input id="crt" placeholder="1 CRT = PCS">
+<input id="pack" placeholder="1 pack = pcs">
+<input id="crt" placeholder="1 crt = pcs">
 
 <input type="file" id="foto">
-<img id="preview" class="preview">
+<img id="preview" width="100%">
 
 <button onclick="tambah(event)">Simpan Produk</button>
-<button onclick="resetForm()" class="btn-warning">Reset</button>
 </div>
 
 <!-- CATALOG -->
@@ -111,7 +131,6 @@ button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 <button onclick="checkoutCart()">Checkout</button>
 </div>
 
-</div>
 </div>
 
 <script type="module">
@@ -134,13 +153,8 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-let uid=null;
-let editId=null;
-let cart=[];
-let tokoData=null;
-let unsub=null;
+let uid=null, cart=[], tokoData=null, editId=null, unsub=null;
 
-/* PARAM */
 const params = new URLSearchParams(location.search);
 const isPublic = params.get("view")==="public";
 const publicId = params.get("id");
@@ -150,6 +164,8 @@ if(isPublic && publicId){
   loginBox.style.display="none";
   appBox.style.display="block";
   formBox.style.display="none";
+  profilBox.style.display="none";
+  document.querySelector(".btn-share").style.display="none";
   initPublic();
 }
 
@@ -161,59 +177,42 @@ async function initPublic(){
 }
 
 /* UI */
-window.showRegister=()=>{
-  loginBox.classList.add("hidden");
-  registerBox.classList.remove("hidden");
-};
-window.showLogin=()=>{
-  registerBox.classList.add("hidden");
-  loginBox.classList.remove("hidden");
-};
+window.showRegister=()=>{loginBox.classList.add("hidden");registerBox.classList.remove("hidden");};
+window.showLogin=()=>{registerBox.classList.add("hidden");loginBox.classList.remove("hidden");};
 
 /* REGISTER */
 window.register=async()=>{
-  let u = await createUserWithEmailAndPassword(auth,regEmail.value,regPassword.value);
-  uid = u.user.uid;
-
+  let u=await createUserWithEmailAndPassword(auth,regEmail.value,regPassword.value);
+  uid=u.user.uid;
   await setDoc(doc(db,"toko",uid),{
     namaToko:regNamaToko.value,
     noWA:regWA.value,
     owner:regEmail.value
   });
-
-  alert("Berhasil daftar!");
+  alert("Berhasil daftar");
   showLogin();
 };
 
 /* LOGIN */
 window.login=async()=>{
-  let u = await signInWithEmailAndPassword(auth,email.value,password.value);
-  uid = u.user.uid;
-
+  let u=await signInWithEmailAndPassword(auth,email.value,password.value);
+  uid=u.user.uid;
   loginBox.style.display="none";
   appBox.style.display="block";
-
   await initToko();
   loadProduk(uid);
 };
 
-/* LOGOUT */
-window.logout=async()=>{
-  await signOut(auth);
-  location.reload();
-};
+window.logout=async()=>{await signOut(auth);location.reload();};
 
-/* INIT TOKO */
 async function initToko(){
-  let snap = await getDoc(doc(db,"toko",uid));
-  tokoData = snap.data();
-
-  namaToko.value = tokoData.namaToko;
-  noWA.value = tokoData.noWA;
-  judulToko.innerText = tokoData.namaToko;
+  let snap=await getDoc(doc(db,"toko",uid));
+  tokoData=snap.data();
+  namaToko.value=tokoData.namaToko;
+  noWA.value=tokoData.noWA;
+  judulToko.innerText=tokoData.namaToko;
 }
 
-/* SIMPAN TOKO */
 window.simpanToko=async()=>{
   await updateDoc(doc(db,"toko",uid),{
     namaToko:namaToko.value,
@@ -224,7 +223,7 @@ window.simpanToko=async()=>{
 
 /* SHARE */
 window.shareCatalog=()=>{
-  let link = location.origin + location.pathname + `?view=public&id=${uid}`;
+  let link=location.origin+location.pathname+`?view=public&id=${uid}`;
   navigator.clipboard.writeText(link);
   alert("Link:\n"+link);
 };
@@ -232,28 +231,22 @@ window.shareCatalog=()=>{
 /* LOAD PRODUK */
 function loadProduk(id){
   if(unsub) unsub();
-
-  unsub = onSnapshot(collection(db,"toko",id,"produk"), snap=>{
+  unsub=onSnapshot(collection(db,"toko",id,"produk"),snap=>{
     list.innerHTML="";
     snap.forEach(d=>{
       let p=d.data();
-
       list.innerHTML+=`
       <div class="product">
       <img src="${p.foto}">
       <h4>${p.nama}</h4>
-      <p>Rp ${p.harga}</p>
-      <p>Stok: ${p.stok}</p>
+      <p><b>Rp ${p.harga.toLocaleString()}</b></p>
+      <p>Stok: ${p.stok} ${p.satuan || "pcs"}</p>
 
       ${
         isPublic
         ? `<button onclick="addToCart('${p.nama}',${p.harga})">Tambah</button>`
-        : `
-        <button onclick="edit('${d.id}','${p.nama}',${p.harga},${p.stok})">Edit</button>
-        <button onclick="hapus('${d.id}')" class="btn-danger">Hapus</button>
-        `
+        : `<button onclick="hapus('${d.id}')" class="btn-danger">Hapus</button>`
       }
-
       </div>`;
     });
   });
@@ -271,40 +264,30 @@ function renderCart(){
   cart.forEach((i,x)=>{
     let sub=i.harga*i.qty;
     total+=sub;
-
-    html+=`
-    <div class="cart-item">
-    ${i.nama} x${i.qty}
-    <div>
-    <button onclick="kurang(${x})">-</button>
-    <button onclick="tambahQty(${x})">+</button>
-    </div>
-    </div>`;
+    html+=`<div class="cart-item">${i.nama} x${i.qty}<span>Rp ${sub.toLocaleString()}</span></div>`;
   });
-
   cartList.innerHTML=html;
   totalHarga.innerText="Total: Rp "+total.toLocaleString();
 }
 
-window.tambahQty=i=>{cart[i].qty++;renderCart();}
-window.kurang=i=>{cart[i].qty--; if(cart[i].qty<=0) cart.splice(i,1); renderCart();}
-
-/* CHECKOUT */
+/* CHECKOUT (🔥 INVOICE RAPI) */
 window.checkoutCart=()=>{
-  let pesan="Halo saya mau beli:\n\n";
   let total=0;
+  let pesan=`🛒 *ORDER ${tokoData.namaToko}*\n\n`;
 
-  cart.forEach(i=>{
+  cart.forEach((i,x)=>{
     let sub=i.harga*i.qty;
     total+=sub;
-    pesan+=`${i.nama} x${i.qty} = Rp ${sub}\n`;
+    pesan+=`${x+1}. ${i.nama}\n   ${i.qty} x Rp ${i.harga.toLocaleString()} = Rp ${sub.toLocaleString()}\n`;
   });
 
-  pesan+=`\nTotal: Rp ${total}`;
+  pesan+=`\n💰 *Total: Rp ${total.toLocaleString()}*`;
+  pesan+=`\n\nMohon diproses ya 🙏`;
+
   window.open(`https://wa.me/${tokoData.noWA}?text=${encodeURIComponent(pesan)}`);
 };
 
-/* TAMBAH FAST */
+/* TAMBAH */
 window.tambah=async(e)=>{
   let btn=e.target;
   btn.disabled=true;
@@ -316,38 +299,23 @@ window.tambah=async(e)=>{
 
   let url="";
   if(foto.files[0]){
-    let r=ref(storage,"produk/"+uid+"_"+Date.now());
+    let r=ref(storage,"produk/"+uid+Date.now());
     await uploadBytes(r,foto.files[0]);
     url=await getDownloadURL(r);
   }
 
-  if(editId){
-    await updateDoc(doc(db,"toko",uid,"produk",editId),{
-      nama:nama.value,
-      harga:+harga.value,
-      stok:finalStok,
-      ...(url && {foto:url})
-    });
-    editId=null;
-  }else{
-    await addDoc(collection(db,"toko",uid,"produk"),{
-      nama:nama.value,
-      harga:+harga.value,
-      stok:finalStok,
-      foto:url
-    });
-  }
+  await addDoc(collection(db,"toko",uid,"produk"),{
+    nama:nama.value,
+    harga:+harga.value,
+    stok:finalStok,
+    satuan:satuan.value,
+    foto:url
+  });
 
-  resetForm();
+  document.querySelectorAll("input").forEach(i=>i.value="");
+  preview.src="";
   btn.disabled=false;
   btn.innerText="Simpan Produk";
-};
-
-window.edit=(id,n,h,s)=>{
-  editId=id;
-  nama.value=n;
-  harga.value=h;
-  stok.value=s;
 };
 
 window.hapus=async(id)=>{
@@ -356,16 +324,7 @@ window.hapus=async(id)=>{
   }
 };
 
-window.resetForm=()=>{
-  document.querySelectorAll("input").forEach(i=>i.value="");
-  preview.src="";
-};
-
-foto.onchange=()=>{
-  if(foto.files[0]){
-    preview.src=URL.createObjectURL(foto.files[0]);
-  }
-};
+foto.onchange=()=>{preview.src=URL.createObjectURL(foto.files[0]);};
 </script>
 
 </body>

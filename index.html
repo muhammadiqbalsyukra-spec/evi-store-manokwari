@@ -1,118 +1,3 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVI STORE MANOKWARI</title>
-
-<style>
-body{font-family:sans-serif;background:#f4f6fb;margin:0;}
-.navbar{background:#1e88e5;color:#fff;padding:15px;text-align:center;font-weight:bold;}
-.container{padding:15px;max-width:900px;margin:auto;}
-.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;}
-
-input,select,button{
-width:100%;padding:10px;margin:5px 0;border-radius:6px;border:1px solid #ccc;
-}
-
-button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
-.btn-danger{background:#e53935;}
-.btn-warning{background:#fb8c00;}
-.btn-share{background:#43a047;}
-
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
-
-.product{background:#fff;padding:10px;border-radius:8px;text-align:center;}
-.product img{width:100%;height:120px;object-fit:cover;border-radius:6px;}
-
-.preview{width:100%;max-height:200px;object-fit:contain;background:#eee;margin-top:5px;}
-.cart-item{display:flex;justify-content:space-between;background:#f1f1f1;padding:5px;border-radius:6px;margin:5px 0;}
-
-.hidden{display:none;}
-</style>
-</head>
-
-<body>
-
-<div class="navbar" id="judulToko">EVI STORE</div>
-
-<div class="container">
-
-<button class="btn-share" onclick="shareCatalog()">🔗 Share Catalog</button>
-
-<!-- LOGIN -->
-<div class="card" id="loginBox">
-<h3>Login</h3>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<button onclick="showRegister()" class="btn-warning">Daftar Toko</button>
-</div>
-
-<!-- REGISTER -->
-<div class="card hidden" id="registerBox">
-<h3>Daftar Toko</h3>
-<input id="regEmail" placeholder="Email">
-<input id="regPassword" type="password" placeholder="Password">
-<input id="regNamaToko" placeholder="Nama Toko">
-<input id="regWA" placeholder="No WA (628...)">
-<button onclick="register()">Daftar</button>
-<button onclick="showLogin()" class="btn-warning">Kembali Login</button>
-</div>
-
-<!-- APP -->
-<div id="appBox" style="display:none">
-
-<button onclick="logout()" class="btn-danger">Logout</button>
-
-<!-- PROFIL -->
-<div class="card">
-<h3>Profil Toko</h3>
-<input id="namaToko">
-<input id="noWA">
-<button onclick="simpanToko()">Simpan</button>
-</div>
-
-<!-- FORM -->
-<div class="card">
-<h3>Tambah Produk</h3>
-<input id="nama" placeholder="Nama">
-<input id="harga" type="number" placeholder="Harga">
-<input id="stok" type="number" placeholder="Jumlah">
-
-<select id="satuan">
-<option value="pcs">PCS</option>
-<option value="pack">PACK</option>
-<option value="crt">CRT</option>
-</select>
-
-<input id="pack" placeholder="1 Pack = PCS">
-<input id="crt" placeholder="1 CRT = PCS">
-
-<input type="file" id="foto">
-<img id="preview" class="preview">
-
-<button onclick="tambah()">Simpan Produk</button>
-<button onclick="resetForm()" class="btn-warning">Reset</button>
-</div>
-
-<!-- CATALOG -->
-<div class="card">
-<h3>Catalog</h3>
-<div id="list" class="grid"></div>
-</div>
-
-<!-- CART -->
-<div class="card">
-<h3>Keranjang</h3>
-<div id="cartList"></div>
-<h4 id="totalHarga">Total: Rp 0</h4>
-<button onclick="checkoutCart()">Checkout</button>
-</div>
-
-</div>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -133,14 +18,38 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+/* STATE */
 let uid=null;
 let editId=null;
 let cart=[];
 let tokoData=null;
 
-const isPublic = new URLSearchParams(location.search).get("view")==="public";
+/* PARAM */
+const params = new URLSearchParams(location.search);
+const isPublic = params.get("view")==="public";
+const publicId = params.get("id");
 
-/* UI SWITCH */
+/* ================= PUBLIC MODE ================= */
+if(isPublic && publicId){
+  loginBox.style.display="none";
+  appBox.style.display="block";
+
+  // sembunyikan form
+  document.querySelectorAll("#appBox .card")[0].style.display="none";
+
+  initPublic();
+}
+
+async function initPublic(){
+  let snap = await getDoc(doc(db,"toko",publicId));
+  tokoData = snap.data();
+
+  judulToko.innerText = tokoData.namaToko;
+
+  loadProduk(publicId);
+}
+
+/* ================= UI ================= */
 window.showRegister=()=>{
   loginBox.classList.add("hidden");
   registerBox.classList.remove("hidden");
@@ -151,7 +60,7 @@ window.showLogin=()=>{
   loginBox.classList.remove("hidden");
 };
 
-/* REGISTER */
+/* ================= REGISTER ================= */
 window.register = async ()=>{
   try{
     let u = await createUserWithEmailAndPassword(auth,regEmail.value,regPassword.value);
@@ -171,7 +80,7 @@ window.register = async ()=>{
   }
 };
 
-/* LOGIN */
+/* ================= LOGIN ================= */
 window.login = async ()=>{
   try{
     let u = await signInWithEmailAndPassword(auth,email.value,password.value);
@@ -181,33 +90,30 @@ window.login = async ()=>{
     appBox.style.display="block";
 
     await initToko();
-    loadProduk();
+    loadProduk(uid);
 
   }catch(e){
     alert("Login gagal: "+e.message);
   }
 };
 
-/* LOGOUT */
+/* ================= LOGOUT ================= */
 window.logout = async ()=>{
   await signOut(auth);
   location.reload();
 };
 
-/* INIT TOKO */
+/* ================= INIT TOKO ================= */
 async function initToko(){
-  let refToko = doc(db,"toko",uid);
-  let snap = await getDoc(refToko);
-
+  let snap = await getDoc(doc(db,"toko",uid));
   tokoData = snap.data();
 
   namaToko.value = tokoData.namaToko;
   noWA.value = tokoData.noWA;
-
   judulToko.innerText = tokoData.namaToko;
 }
 
-/* SIMPAN TOKO */
+/* ================= SIMPAN TOKO ================= */
 window.simpanToko = async ()=>{
   await updateDoc(doc(db,"toko",uid),{
     namaToko:namaToko.value,
@@ -216,17 +122,15 @@ window.simpanToko = async ()=>{
   alert("Tersimpan");
 };
 
-/* SHARE */
+/* ================= SHARE ================= */
 window.shareCatalog=()=>{
-  let link = location.origin + location.pathname + "?view=public&id="+uid;
+  let link = location.origin + location.pathname + `?view=public&id=${uid}`;
   navigator.clipboard.writeText(link);
-  alert("Link disalin:\n"+link);
+  alert("Link katalog:\n"+link);
 };
 
-/* LOAD PRODUK */
-function loadProduk(){
-  let id = isPublic ? new URLSearchParams(location.search).get("id") : uid;
-
+/* ================= LOAD PRODUK ================= */
+function loadProduk(id){
   onSnapshot(collection(db,"toko",id,"produk"), snap=>{
     list.innerHTML="";
     snap.forEach(d=>{
@@ -253,7 +157,7 @@ function loadProduk(){
   });
 }
 
-/* CART */
+/* ================= CART ================= */
 window.addToCart=(n,h)=>{
   let i=cart.find(x=>x.nama===n);
   if(i)i.qty++;
@@ -285,7 +189,7 @@ function renderCart(){
 window.tambahQty=i=>{cart[i].qty++;renderCart();}
 window.kurang=i=>{cart[i].qty--; if(cart[i].qty<=0) cart.splice(i,1); renderCart();}
 
-/* CHECKOUT */
+/* ================= CHECKOUT ================= */
 window.checkoutCart=()=>{
   let pesan="Halo saya mau beli:\n\n";
   let total=0;
@@ -301,39 +205,52 @@ window.checkoutCart=()=>{
   window.open(`https://wa.me/${tokoData.noWA}?text=${encodeURIComponent(pesan)}`);
 };
 
-/* TAMBAH */
+/* ================= TAMBAH PRODUK (FAST) ================= */
 window.tambah=async()=>{
-  let finalStok=+stok.value;
-  if(satuan.value=="pack") finalStok=stok.value*(+pack.value||1);
-  if(satuan.value=="crt") finalStok=stok.value*(+crt.value||1);
+  let btn = event.target;
+  btn.disabled = true;
+  btn.innerText = "Menyimpan...";
 
-  let url="";
-  if(foto.files[0]){
-    let r=ref(storage,"produk/"+uid+Date.now());
-    await uploadBytes(r,foto.files[0]);
-    url=await getDownloadURL(r);
+  try{
+    let finalStok=+stok.value;
+    if(satuan.value=="pack") finalStok=stok.value*(+pack.value||1);
+    if(satuan.value=="crt") finalStok=stok.value*(+crt.value||1);
+
+    let url="";
+    if(foto.files[0]){
+      let r=ref(storage,"produk/"+uid+"_"+Date.now());
+      await uploadBytes(r,foto.files[0]);
+      url=await getDownloadURL(r);
+    }
+
+    if(editId){
+      await updateDoc(doc(db,"toko",uid,"produk",editId),{
+        nama:nama.value,
+        harga:+harga.value,
+        stok:finalStok,
+        ...(url && {foto:url})
+      });
+      editId=null;
+    }else{
+      await addDoc(collection(db,"toko",uid,"produk"),{
+        nama:nama.value,
+        harga:+harga.value,
+        stok:finalStok,
+        foto:url
+      });
+    }
+
+    resetForm();
+
+  }catch(e){
+    alert("Error: "+e.message);
   }
 
-  if(editId){
-    await updateDoc(doc(db,"toko",uid,"produk",editId),{
-      nama:nama.value,
-      harga:+harga.value,
-      stok:finalStok,
-      ...(url && {foto:url})
-    });
-    editId=null;
-  }else{
-    await addDoc(collection(db,"toko",uid,"produk"),{
-      nama:nama.value,
-      harga:+harga.value,
-      stok:finalStok,
-      foto:url
-    });
-  }
-
-  resetForm();
+  btn.disabled = false;
+  btn.innerText = "Simpan Produk";
 };
 
+/* ================= EDIT ================= */
 window.edit=(id,n,h,s)=>{
   editId=id;
   nama.value=n;
@@ -341,23 +258,23 @@ window.edit=(id,n,h,s)=>{
   stok.value=s;
 };
 
+/* ================= HAPUS ================= */
 window.hapus=async(id)=>{
   if(confirm("Hapus produk?")){
     await deleteDoc(doc(db,"toko",uid,"produk",id));
   }
 };
 
+/* ================= RESET ================= */
 window.resetForm=()=>{
   document.querySelectorAll("input").forEach(i=>i.value="");
   preview.src="";
 };
 
+/* ================= PREVIEW ================= */
 foto.onchange=()=>{
   if(foto.files[0]){
     preview.src=URL.createObjectURL(foto.files[0]);
   }
 };
 </script>
-
-</body>
-</html>

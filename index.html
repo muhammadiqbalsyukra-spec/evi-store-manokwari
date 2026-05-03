@@ -23,10 +23,7 @@ button{
   background:#25D366;color:white;font-weight:bold;
 }
 
-.menu{
-  display:flex;gap:10px;
-}
-
+.menu{display:flex;gap:10px;}
 .menu button{flex:1;}
 
 .card{
@@ -47,7 +44,7 @@ img{width:100%;max-width:120px;}
 
 <div class="container">
 
-<!-- 1. LOGIN -->
+<!-- LOGIN -->
 <div id="loginPage">
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Password">
@@ -55,9 +52,8 @@ img{width:100%;max-width:120px;}
 <button onclick="register()">DAFTAR</button>
 </div>
 
-<!-- 2. MENU INPUT -->
+<!-- INPUT -->
 <div id="inputPage" class="hidden">
-
 <h3>Menu Input</h3>
 
 <input id="nama" placeholder="Nama Produk">
@@ -72,17 +68,22 @@ img{width:100%;max-width:120px;}
 <button onclick="logout()">LOGOUT</button>
 </div>
 
+<div id="notif"></div>
 </div>
 
-<!-- 3. CATALOG -->
+<!-- CATALOG -->
 <div id="catalogPage" class="hidden">
 
 <h3>Catalog</h3>
+
+<button onclick="backToInput()">⬅ Kembali</button>
+
 <div id="catalog"></div>
 
 <h3>Keranjang</h3>
 <div id="cart"></div>
-<button onclick="checkout()">SHARE / ORDER WA</button>
+
+<button onclick="checkout()">CHECKOUT / SHARE WA</button>
 
 </div>
 
@@ -111,7 +112,7 @@ const storage = getStorage(app);
 let user=null;
 let cartData={};
 
-// LOGIN STATE
+// AUTH STATE
 onAuthStateChanged(auth,(u)=>{
   user=u;
   if(u){
@@ -125,38 +126,66 @@ onAuthStateChanged(auth,(u)=>{
 });
 
 // LOGIN
-window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value);
-window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.value);
+window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value)
+.catch(e=>alert(e.message));
+
+window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.value)
+.catch(e=>alert(e.message));
+
 window.logout=()=>signOut(auth);
 
-// UPLOAD PRODUK
+// UPLOAD PRODUK (FIX BUG)
 window.upload=async()=>{
-  const file=foto.files[0];
-  if(!file) return alert("Pilih foto");
+  try{
+    if(!nama.value || !harga.value || !stok.value){
+      return notif.innerHTML="⚠️ Lengkapi semua data";
+    }
 
-  const storageRef=ref(storage,"produk/"+Date.now());
-  await uploadBytes(storageRef,file);
-  const url=await getDownloadURL(storageRef);
+    if(!foto.files[0]){
+      return notif.innerHTML="⚠️ Pilih foto dulu";
+    }
 
-  await addDoc(collection(db,"produk"),{
-    nama:nama.value,
-    harga:Number(harga.value),
-    stok:Number(stok.value),
-    foto:url,
-    userId:user.uid
-  });
+    notif.innerHTML="⏳ Uploading...";
 
-  alert("Produk berhasil disimpan");
+    const file=foto.files[0];
+    const storageRef=ref(storage,"produk/"+Date.now());
+
+    await uploadBytes(storageRef,file);
+    const url=await getDownloadURL(storageRef);
+
+    await addDoc(collection(db,"produk"),{
+      nama:nama.value,
+      harga:Number(harga.value),
+      stok:Number(stok.value),
+      foto:url,
+      userId:user.uid
+    });
+
+    notif.innerHTML="✅ Produk berhasil disimpan";
+
+    nama.value="";
+    harga.value="";
+    stok.value="";
+    foto.value="";
+
+  }catch(e){
+    notif.innerHTML="❌ Error: "+e.message;
+  }
 };
 
-// SHOW CATALOG
+// NAV
 window.showCatalog=()=>{
   inputPage.classList.add("hidden");
   catalogPage.classList.remove("hidden");
   loadCatalog();
 };
 
-// LOAD DATA
+window.backToInput=()=>{
+  catalogPage.classList.add("hidden");
+  inputPage.classList.remove("hidden");
+};
+
+// LOAD CATALOG
 async function loadCatalog(){
   const snap=await getDocs(collection(db,"produk"));
 
@@ -203,7 +232,10 @@ function updateCart(){
   for(let id in cartData){
     let i=cartData[id];
     total+=i.qty*i.harga;
-    document.getElementById("q_"+id).innerText=i.qty;
+
+    let el=document.getElementById("q_"+id);
+    if(el) el.innerText=i.qty;
+
     html+=`${i.nama} x${i.qty}<br>`;
   }
 
@@ -213,6 +245,10 @@ function updateCart(){
 
 // CHECKOUT WA
 window.checkout=()=>{
+  if(Object.keys(cartData).length===0){
+    return alert("Keranjang kosong");
+  }
+
   let text="Pesanan:%0A";
 
   for(let id in cartData){
@@ -220,7 +256,7 @@ window.checkout=()=>{
     text+=`${i.nama} x${i.qty}%0A`;
   }
 
-  let wa="628XXXXXXXXXX";
+  let wa="6282285712293";
   window.open(`https://wa.me/${wa}?text=${text}`);
 };
 </script>

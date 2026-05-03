@@ -6,50 +6,35 @@
 <title>EVI STORE MANOKWARI</title>
 
 <style>
-body {font-family:sans-serif;background:#f4f6fb;margin:0;}
-.navbar {background:#1e88e5;color:#fff;padding:15px;text-align:center;font-weight:bold;}
-.container {padding:15px;max-width:900px;margin:auto;}
-.card {background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 4px 12px rgba(0,0,0,0.08);}
+body{font-family:sans-serif;background:#f4f6fb;margin:0;}
+.navbar{background:#1e88e5;color:#fff;padding:15px;text-align:center;font-weight:bold;}
+.container{padding:15px;max-width:900px;margin:auto;}
+.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;}
 
 input,select,button{
 width:100%;padding:10px;margin:5px 0;border-radius:6px;border:1px solid #ccc;
 }
 
-button{background:#1e88e5;color:white;border:none;cursor:pointer;}
+button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
 .btn-danger{background:#e53935;}
 .btn-warning{background:#fb8c00;}
 .btn-share{background:#43a047;}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
 
-.product{background:#fff;padding:10px;border-radius:8px;text-align:center;transition:0.2s;}
-.product:hover{transform:scale(1.03);}
+.product{background:#fff;padding:10px;border-radius:8px;text-align:center;}
 .product img{width:100%;height:120px;object-fit:cover;border-radius:6px;}
 
-.preview{
-width:100%;
-max-height:200px;
-object-fit:contain;
-background:#eee;
-margin-top:5px;
-}
+.preview{width:100%;max-height:200px;object-fit:contain;background:#eee;margin-top:5px;}
 
-.cart-item{
-display:flex;
-justify-content:space-between;
-background:#f1f1f1;
-padding:5px;
-border-radius:6px;
-margin:5px 0;
-}
-
+.cart-item{display:flex;justify-content:space-between;background:#f1f1f1;padding:5px;border-radius:6px;margin:5px 0;}
 .hidden{display:none;}
 </style>
 </head>
 
 <body>
 
-<div class="navbar">EVI STORE MANOKWARI</div>
+<div class="navbar" id="judulToko">EVI STORE</div>
 
 <div class="container">
 
@@ -58,25 +43,41 @@ margin:5px 0;
 <!-- LOGIN -->
 <div class="card" id="loginBox">
 <h3>Login Admin</h3>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
+<input id="email">
+<input id="password" type="password">
 <button onclick="login()">Login</button>
 </div>
 
 <div id="appBox" style="display:none">
 
+<!-- PROFIL TOKO -->
+<div class="card">
+<h3>Profil Toko</h3>
+<input id="namaToko" placeholder="Nama Toko">
+<input id="noWA" placeholder="No WhatsApp (628...)">
+<button onclick="simpanToko()">Simpan Profil</button>
+</div>
+
 <!-- FORM -->
 <div class="card" id="formBox">
 <h3>Tambah Produk</h3>
-
 <input id="nama" placeholder="Nama">
 <input id="harga" type="number" placeholder="Harga">
-<input id="stok" type="number" placeholder="Stok (PCS)">
+<input id="stok" type="number" placeholder="Jumlah">
+
+<select id="satuan">
+<option value="pcs">PCS</option>
+<option value="pack">PACK</option>
+<option value="crt">CRT</option>
+</select>
+
+<input id="pack" placeholder="1 Pack = PCS">
+<input id="crt" placeholder="1 CRT = PCS">
 
 <input type="file" id="foto">
 <img id="preview" class="preview">
 
-<button onclick="tambah()" id="btnSimpan">Simpan Produk</button>
+<button onclick="tambah()">Simpan Produk</button>
 <button onclick="resetForm()" class="btn-warning">Reset</button>
 </div>
 
@@ -100,7 +101,7 @@ margin:5px 0;
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, getDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -117,59 +118,73 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+let uid=null;
 let editId=null;
-let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+let cart=[];
+let tokoData=null;
 
 const isPublic = new URLSearchParams(location.search).get("view")==="public";
 
-/* FORMAT RUPIAH */
-function rupiah(x){
-  return "Rp " + x.toLocaleString("id-ID");
-}
-
-/* PUBLIC MODE */
-if(isPublic){
-  loginBox.style.display="none";
-  appBox.style.display="block";
-  formBox.style.display="none";
-  load();
-}
-
 /* LOGIN */
 window.login = async ()=>{
-  try{
-    await signInWithEmailAndPassword(auth,email.value,password.value);
-  }catch(e){
-    alert(e.message);
-  }
+  await signInWithEmailAndPassword(auth,email.value,password.value);
 };
 
-/* AUTO LOGIN */
-onAuthStateChanged(auth,u=>{
-  if(u && !isPublic){
-    loginBox.style.display="none";
-    appBox.style.display="block";
-    load();
-  }
+/* AUTH */
+onAuthStateChanged(auth, async u=>{
+  if(!u) return;
+  uid=u.uid;
+
+  loginBox.style.display="none";
+  appBox.style.display="block";
+
+  await initToko();
+  loadProduk();
 });
 
+/* INIT TOKO */
+async function initToko(){
+  const refToko = doc(db,"toko",uid);
+  const snap = await getDoc(refToko);
+
+  if(!snap.exists()){
+    await setDoc(refToko,{
+      namaToko:"Toko Baru",
+      noWA:"6280000000000",
+      owner:auth.currentUser.email
+    });
+  }
+
+  tokoData = (await getDoc(refToko)).data();
+
+  namaToko.value = tokoData.namaToko;
+  noWA.value = tokoData.noWA;
+
+  judulToko.innerText = tokoData.namaToko;
+}
+
+/* SIMPAN TOKO */
+window.simpanToko = async ()=>{
+  await updateDoc(doc(db,"toko",uid),{
+    namaToko:namaToko.value,
+    noWA:noWA.value
+  });
+  alert("Profil disimpan");
+  initToko();
+};
+
 /* SHARE */
-window.shareCatalog = ()=>{
-  let link = location.origin + location.pathname + "?view=public";
+window.shareCatalog=()=>{
+  let link = location.origin + location.pathname + "?view=public&id="+uid;
   navigator.clipboard.writeText(link);
   alert("Link disalin:\n"+link);
 };
 
-/* PREVIEW */
-foto.onchange = ()=>{
-  if(foto.files[0]){
-    preview.src = URL.createObjectURL(foto.files[0]);
-  }
-};
+/* LOAD PRODUK */
+function loadProduk(){
+  let id = isPublic ? new URLSearchParams(location.search).get("id") : uid;
 
-/* LOAD */
-function load(){
-  onSnapshot(collection(db,"produk"), snap=>{
+  onSnapshot(collection(db,"toko",id,"produk"), snap=>{
     list.innerHTML="";
     snap.forEach(d=>{
       let p=d.data();
@@ -178,12 +193,12 @@ function load(){
       <div class="product">
       <img src="${p.foto}">
       <h4>${p.nama}</h4>
-      <p>${rupiah(p.harga)}</p>
+      <p>Rp ${p.harga}</p>
       <p>Stok: ${p.stok}</p>
 
       ${
         isPublic
-        ? `<button onclick="addToCart('${p.nama}',${p.harga},${p.stok})">Tambah</button>`
+        ? `<button onclick="addToCart('${p.nama}',${p.harga})">Tambah</button>`
         : `
         <button onclick="edit('${d.id}','${p.nama}',${p.harga},${p.stok})" class="btn-warning">Edit</button>
         <button onclick="hapus('${d.id}')" class="btn-danger">Hapus</button>
@@ -196,108 +211,86 @@ function load(){
 }
 
 /* CART */
-window.addToCart=(nama,harga,stok)=>{
-  if(stok<=0) return alert("Stok habis!");
-
-  let item = cart.find(i=>i.nama===nama);
-  if(item){item.qty++;}
-  else{cart.push({nama,harga,qty:1});}
-
-  saveCart();
-};
-
-function saveCart(){
-  localStorage.setItem("cart", JSON.stringify(cart));
+window.addToCart=(n,h)=>{
+  let i=cart.find(x=>x.nama===n);
+  if(i)i.qty++;
+  else cart.push({nama:n,harga:h,qty:1});
   renderCart();
-}
+};
 
 function renderCart(){
   let html="", total=0;
 
-  cart.forEach((i,idx)=>{
+  cart.forEach((i,x)=>{
     let sub=i.harga*i.qty;
     total+=sub;
 
     html+=`
     <div class="cart-item">
-      <div>${i.nama} x${i.qty}<br>${rupiah(sub)}</div>
-      <div>
-        <button onclick="kurang(${idx})">-</button>
-        <button onclick="tambahQty(${idx})">+</button>
-        <button onclick="hapusItem(${idx})">x</button>
-      </div>
+    ${i.nama} x${i.qty}
+    <div>
+    <button onclick="kurang(${x})">-</button>
+    <button onclick="tambahQty(${x})">+</button>
+    </div>
     </div>`;
   });
 
   cartList.innerHTML=html;
-  totalHarga.innerHTML="Total: "+rupiah(total);
+  totalHarga.innerText="Total: Rp "+total.toLocaleString();
 }
 
-window.tambahQty=i=>{cart[i].qty++;saveCart();}
-window.kurang=i=>{cart[i].qty--; if(cart[i].qty<=0) cart.splice(i,1); saveCart();}
-window.hapusItem=i=>{cart.splice(i,1); saveCart();}
+window.tambahQty=i=>{cart[i].qty++;renderCart();}
+window.kurang=i=>{cart[i].qty--; if(cart[i].qty<=0) cart.splice(i,1); renderCart();}
 
 /* CHECKOUT */
 window.checkoutCart=()=>{
-  if(cart.length===0) return alert("Keranjang kosong!");
-
-  let pesan="Halo, saya mau beli:\n\n";
+  let pesan="Halo saya mau beli:\n\n";
   let total=0;
 
   cart.forEach(i=>{
     let sub=i.harga*i.qty;
     total+=sub;
-    pesan+=`${i.nama} x${i.qty} = ${rupiah(sub)}\n`;
+    pesan+=`${i.nama} x${i.qty} = Rp ${sub}\n`;
   });
 
-  pesan+=`\nTotal: ${rupiah(total)}`;
+  pesan+=`\nTotal: Rp ${total}`;
 
-  window.open(`https://wa.me/6282285712293?text=${encodeURIComponent(pesan)}`);
-
-  cart=[];
-  saveCart();
+  window.open(`https://wa.me/${tokoData.noWA}?text=${encodeURIComponent(pesan)}`);
 };
 
 /* TAMBAH */
 window.tambah=async()=>{
-  try{
-    btnSimpan.innerText="Menyimpan...";
-    btnSimpan.disabled=true;
+  let finalStok=+stok.value;
+  if(satuan.value=="pack") finalStok=stok.value*(+pack.value||1);
+  if(satuan.value=="crt") finalStok=stok.value*(+crt.value||1);
 
-    let url="";
-    if(foto.files[0]){
-      let r=ref(storage,"produk/"+Date.now()+foto.files[0].name);
-      await uploadBytes(r,foto.files[0]);
-      url=await getDownloadURL(r);
-    }
-
-    if(editId){
-      await updateDoc(doc(db,"produk",editId),{
-        nama:nama.value,
-        harga:+harga.value,
-        stok:+stok.value,
-        ...(url && {foto:url})
-      });
-      editId=null;
-    }else{
-      await addDoc(collection(db,"produk"),{
-        nama:nama.value,
-        harga:+harga.value,
-        stok:+stok.value,
-        foto:url
-      });
-    }
-
-    resetForm();
-  }catch(e){
-    alert(e.message);
-  }finally{
-    btnSimpan.innerText="Simpan Produk";
-    btnSimpan.disabled=false;
+  let url="";
+  if(foto.files[0]){
+    let r=ref(storage,"produk/"+uid+Date.now());
+    await uploadBytes(r,foto.files[0]);
+    url=await getDownloadURL(r);
   }
+
+  if(editId){
+    await updateDoc(doc(db,"toko",uid,"produk",editId),{
+      nama:nama.value,
+      harga:+harga.value,
+      stok:finalStok,
+      ...(url && {foto:url})
+    });
+    editId=null;
+  }else{
+    await addDoc(collection(db,"toko",uid,"produk"),{
+      nama:nama.value,
+      harga:+harga.value,
+      stok:finalStok,
+      foto:url
+    });
+  }
+
+  resetForm();
 };
 
-/* EDIT */
 window.edit=(id,n,h,s)=>{
   editId=id;
   nama.value=n;
@@ -305,20 +298,23 @@ window.edit=(id,n,h,s)=>{
   stok.value=s;
 };
 
-/* HAPUS */
 window.hapus=async(id)=>{
   if(confirm("Hapus produk?")){
-    await deleteDoc(doc(db,"produk",id));
+    await deleteDoc(doc(db,"toko",uid,"produk",id));
   }
 };
 
-/* RESET */
 window.resetForm=()=>{
   document.querySelectorAll("input").forEach(i=>i.value="");
   preview.src="";
 };
 
-renderCart();
+/* PREVIEW */
+foto.onchange=()=>{
+  if(foto.files[0]){
+    preview.src=URL.createObjectURL(foto.files[0]);
+  }
+};
 </script>
 
 </body>

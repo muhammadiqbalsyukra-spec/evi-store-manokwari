@@ -30,32 +30,43 @@ background:#eee;
 margin-top:5px;
 }
 
-.hidden{display:none;}
-</style></head><body><div class="navbar">EVI STORE MANOKWARI</div><div class="container"><!-- SHARE BUTTON --><button class="btn-share" onclick="shareCatalog()">🔗 Share Catalog</button>
+.cart-item{
+display:flex;
+justify-content:space-between;
+background:#f1f1f1;
+padding:5px;
+border-radius:6px;
+margin:5px 0;
+}
 
-<div class="card" id="loginBox">
+.hidden{display:none;}
+</style></head><body><div class="navbar">EVI STORE MANOKWARI</div><div class="container"><button class="btn-share" onclick="shareCatalog()">🔗 Share Catalog</button>
+
+<!-- LOGIN --><div class="card" id="loginBox">
 <h3>Login Admin</h3>
 <input id="email">
 <input id="password" type="password">
 <button onclick="login()">Login</button>
-</div><div id="appBox" style="display:none"><div class="card" id="formBox">
-<h3 id="formTitle">Tambah Produk</h3><input id="nama" placeholder="Nama">
+</div><div id="appBox" style="display:none"><!-- FORM --><div class="card" id="formBox">
+<h3>Tambah Produk</h3><input id="nama" placeholder="Nama">
 <input id="harga" type="number" placeholder="Harga">
 <input id="stok" type="number" placeholder="Jumlah"><select id="satuan">
 <option value="pcs">PCS</option>
 <option value="pack">PACK</option>
 <option value="crt">CRT</option>
-</select><div id="packBox" class="hidden">
-<input id="pack" placeholder="1 Pack = PCS">
-</div><div id="crtBox" class="hidden">
-<input id="crt" placeholder="1 CRT = PCS">
-</div><input type="file" id="foto">
+</select><input id="pack" placeholder="1 Pack = PCS">
+<input id="crt" placeholder="1 CRT = PCS"><input type="file" id="foto">
 <img id="preview" class="preview"><button onclick="tambah()">Simpan Produk</button>
 <button onclick="resetForm()" class="btn-warning">Reset</button>
 
-</div><div class="card">
+</div><!-- CATALOG --><div class="card">
 <h3>Catalog Produk</h3>
 <div id="list" class="grid"></div>
+</div><!-- CART --><div class="card">
+<h3>Keranjang 🛒</h3>
+<div id="cartList"></div>
+<h4 id="totalHarga">Total: Rp 0</h4>
+<button onclick="checkoutCart()">Checkout</button>
 </div></div>
 </div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -63,8 +74,9 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https:/
 import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
+/* CONFIG */
 const firebaseConfig = {
-  apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
+  apiKey: "AIzaSy...",
   authDomain: "evi-store-manokwari.firebaseapp.com",
   projectId: "evi-store-manokwari",
   storageBucket: "evi-store-manokwari.firebasestorage.app",
@@ -78,6 +90,8 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 let editId=null;
+let cart=[];
+
 const isPublic = new URLSearchParams(window.location.search).get("view")==="public";
 
 /* MODE PUBLIC */
@@ -90,7 +104,11 @@ if(isPublic){
 
 /* LOGIN */
 window.login = async ()=>{
-  await signInWithEmailAndPassword(auth,email.value,password.value);
+  try{
+    await signInWithEmailAndPassword(auth,email.value,password.value);
+  }catch(e){
+    alert(e.message);
+  }
 };
 
 /* AUTO LOGIN */
@@ -104,9 +122,16 @@ onAuthStateChanged(auth,u=>{
 
 /* SHARE */
 window.shareCatalog = ()=>{
-  const link = window.location.origin + window.location.pathname + "?view=public";
+  let link = location.origin + location.pathname + "?view=public";
   navigator.clipboard.writeText(link);
-  alert("Link katalog disalin:\n"+link);
+  alert("Link disalin:\n"+link);
+};
+
+/* PREVIEW */
+foto.onchange = ()=>{
+  if(foto.files[0]){
+    preview.src = URL.createObjectURL(foto.files[0]);
+  }
 };
 
 /* LOAD */
@@ -121,11 +146,11 @@ function load(){
       <img src="${p.foto}">
       <h4>${p.nama}</h4>
       <p>Rp ${p.harga}</p>
-      <p>Stok: ${p.stok} pcs</p>
+      <p>Stok: ${p.stok}</p>
 
       ${
         isPublic
-        ? `<button onclick="checkout('${p.nama}',${p.harga})">Beli</button>`
+        ? `<button onclick="addToCart('${p.nama}',${p.harga})">Tambah</button>`
         : `
         <button onclick="edit('${d.id}','${p.nama}',${p.harga},${p.stok})" class="btn-warning">Edit</button>
         <button onclick="hapus('${d.id}')" class="btn-danger">Hapus</button>
@@ -137,38 +162,89 @@ function load(){
   });
 }
 
-/* CHECKOUT */
-window.checkout = (nama,harga)=>{
-  let pesan = `Halo, saya mau beli ${nama} harga Rp${harga}`;
-  window.open(`https://wa.me/6282285712293?text=${encodeURIComponent(pesan)}`);
+/* CART */
+window.addToCart=(nama,harga)=>{
+  let item = cart.find(i=>i.nama===nama);
+  if(item){item.qty++;}
+  else{cart.push({nama,harga,qty:1});}
+  renderCart();
 };
 
-/* TAMBAH / EDIT / HAPUS tetap sama seperti sebelumnya */
-window.tambah = async ()=>{
-  let namaVal=nama.value;
-  let hargaVal=+harga.value;
-  let stokVal=+stok.value;
+function renderCart(){
+  let html="", total=0;
 
-  let finalStok=stokVal;
-  if(satuan.value=="pack") finalStok=stokVal*(+pack.value||1);
-  if(satuan.value=="crt") finalStok=stokVal*(+crt.value||1);
+  cart.forEach((i,idx)=>{
+    let sub=i.harga*i.qty;
+    total+=sub;
+
+    html+=`
+    <div class="cart-item">
+      <div>${i.nama} x${i.qty}<br>Rp ${sub}</div>
+      <div>
+        <button onclick="kurang(${idx})">-</button>
+        <button onclick="tambahQty(${idx})">+</button>
+        <button onclick="hapusItem(${idx})">x</button>
+      </div>
+    </div>`;
+  });
+
+  cartList.innerHTML=html;
+  totalHarga.innerHTML="Total: Rp "+total.toLocaleString();
+}
+
+window.tambahQty=i=>{cart[i].qty++;renderCart();}
+window.kurang=i=>{cart[i].qty--; if(cart[i].qty<=0) cart.splice(i,1); renderCart();}
+window.hapusItem=i=>{cart.splice(i,1); renderCart();}
+
+/* CHECKOUT */
+window.checkoutCart=()=>{
+  if(cart.length===0) return alert("Keranjang kosong!");
+
+  let pesan="Halo, saya mau beli:\n\n";
+  let total=0;
+
+  cart.forEach(i=>{
+    let sub=i.harga*i.qty;
+    total+=sub;
+    pesan+=`${i.nama} x${i.qty} = Rp ${sub}\n`;
+  });
+
+  pesan+=`\nTotal: Rp ${total}`;
+
+  window.open(`https://wa.me/6282285712293?text=${encodeURIComponent(pesan)}`);
+
+  cart=[];
+  renderCart();
+};
+
+/* TAMBAH */
+window.tambah=async()=>{
+  let finalStok=+stok.value;
+  if(satuan.value=="pack") finalStok=stok.value*(+pack.value||1);
+  if(satuan.value=="crt") finalStok=stok.value*(+crt.value||1);
 
   let url="";
   if(foto.files[0]){
-    let f=foto.files[0];
-    let r=ref(storage,"produk/"+Date.now()+f.name);
-    await uploadBytes(r,f);
+    let r=ref(storage,"produk/"+Date.now()+foto.files[0].name);
+    await uploadBytes(r,foto.files[0]);
     url=await getDownloadURL(r);
   }
 
   if(editId){
-    let refDoc=doc(db,"produk",editId);
-    let data={nama:namaVal,harga:hargaVal,stok:finalStok};
-    if(url) data.foto=url;
-    await updateDoc(refDoc,data);
+    await updateDoc(doc(db,"produk",editId),{
+      nama:nama.value,
+      harga:+harga.value,
+      stok:finalStok,
+      ...(url && {foto:url})
+    });
     editId=null;
   }else{
-    await addDoc(collection(db,"produk"),{nama:namaVal,harga:hargaVal,stok:finalStok,foto:url});
+    await addDoc(collection(db,"produk"),{
+      nama:nama.value,
+      harga:+harga.value,
+      stok:finalStok,
+      foto:url
+    });
   }
 
   resetForm();
@@ -191,6 +267,5 @@ window.resetForm=()=>{
   document.querySelectorAll("input").forEach(i=>i.value="");
   preview.src="";
 };
-
 </script></body>
 </html>

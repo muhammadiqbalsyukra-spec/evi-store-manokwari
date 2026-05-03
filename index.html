@@ -7,96 +7,69 @@
 
 <style>
 body{margin:0;font-family:sans-serif;background:#f4f6f8;}
-.header{
-  background:#25D366;
-  color:white;
-  padding:15px;
-  font-weight:bold;
-  display:flex;
-  justify-content:space-between;
-}
+.header{background:#25D366;color:white;padding:15px;text-align:center;font-weight:bold;}
 
-.container{padding:10px;}
-
+.container{padding:10px;margin-bottom:80px;}
 .hidden{display:none;}
 
 input,select{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-  border-radius:8px;
-  border:1px solid #ccc;
+  width:100%;padding:10px;margin:5px 0;
+  border-radius:8px;border:1px solid #ccc;
 }
 
 button{
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  margin:5px 0;
-  width:100%;
-  background:#25D366;
-  color:white;
-  font-weight:bold;
+  width:100%;padding:10px;margin:5px 0;
+  border:none;border-radius:8px;
+  background:#25D366;color:white;font-weight:bold;
 }
 
-/* GRID CATALOG */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
   gap:10px;
 }
 
-/* CARD */
 .card{
-  background:white;
-  border-radius:12px;
-  overflow:hidden;
+  background:white;border-radius:12px;overflow:hidden;
   box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
-.card img{
-  width:100%;
-  height:140px;
-  object-fit:cover;
-}
-
+.card img{width:100%;height:140px;object-fit:cover;}
 .card-body{padding:8px;}
-
 .nama{font-size:14px;font-weight:bold;}
 .harga{color:#25D366;font-weight:bold;}
 
-.qty{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-top:5px;
+.qty{display:flex;justify-content:space-between;align-items:center;}
+.qty button{width:30px;height:30px;padding:0;}
+
+.empty{
+  text-align:center;
+  color:#888;
+  margin-top:50px;
 }
 
-.qty button{
-  width:30px;height:30px;padding:0;
-}
-
-/* CART FIXED */
 .cart-box{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  background:white;
-  padding:10px;
-  border-top:1px solid #ddd;
+  position:fixed;bottom:60px;left:0;right:0;
+  background:white;padding:10px;border-top:1px solid #ddd;
 }
 
-.total{font-weight:bold;color:#25D366;}
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;
+  display:flex;background:white;border-top:1px solid #ccc;
+}
+
+.tab{
+  flex:1;text-align:center;padding:10px;
+  font-size:12px;
+}
+
+.tab.active{color:#25D366;font-weight:bold;}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-<span>EVI STORE</span>
-<span onclick="goCatalog()">🛍️</span>
-</div>
+<div class="header">EVI STORE</div>
 
 <div class="container">
 
@@ -111,7 +84,6 @@ button{
 <!-- INPUT -->
 <div id="inputPage" class="hidden">
 <h3>Tambah Produk</h3>
-
 <input id="nama" placeholder="Nama Produk">
 <input id="harga" type="number" placeholder="Harga">
 <input id="stok" type="number" placeholder="Stok">
@@ -123,22 +95,37 @@ button{
 </select>
 
 <input type="file" id="foto">
-
 <button onclick="upload()">Simpan Produk</button>
-<button onclick="logout()">Logout</button>
 </div>
 
 <!-- CATALOG -->
 <div id="catalogPage" class="hidden">
+<div id="loading">Loading...</div>
 <div class="grid" id="catalog"></div>
+<div class="empty hidden" id="empty">Belum ada produk</div>
+</div>
+
+<!-- ACCOUNT -->
+<div id="accountPage" class="hidden">
+<h3>Akun</h3>
+<div id="userInfo"></div>
+<button onclick="logout()">Logout</button>
+</div>
+
 </div>
 
 <!-- CART -->
-<div class="cart-box" id="cartBox">
+<div class="cart-box hidden" id="cartBox">
 <div id="cart"></div>
 <button onclick="checkout()">Checkout WhatsApp</button>
 </div>
 
+<!-- TAB MENU -->
+<div class="tabbar hidden" id="tabbar">
+<div class="tab" onclick="show('catalog')">Home</div>
+<div class="tab" onclick="show('catalog')">Catalog</div>
+<div class="tab" onclick="show('input')">Input</div>
+<div class="tab" onclick="show('account')">Akun</div>
 </div>
 
 <script type="module">
@@ -168,29 +155,40 @@ let cartData={};
 onAuthStateChanged(auth,(u)=>{
   user=u;
   if(u){
-    show("#catalog");
+    tabbar.classList.remove("hidden");
+    show("catalog");
+    userInfo.innerHTML = "Login: "+u.email;
   }else{
-    show("#login");
+    tabbar.classList.add("hidden");
+    show("login");
   }
 });
 
 // NAV
-function show(p){
+window.show=(page)=>{
   loginPage.classList.add("hidden");
   inputPage.classList.add("hidden");
   catalogPage.classList.add("hidden");
+  accountPage.classList.add("hidden");
 
-  if(p=="#login") loginPage.classList.remove("hidden");
-  if(p=="#input") inputPage.classList.remove("hidden");
-  if(p=="#catalog"){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+
+  if(page=="login"){
+    loginPage.classList.remove("hidden");
+  }
+  if(page=="input"){
+    inputPage.classList.remove("hidden");
+  }
+  if(page=="catalog"){
     catalogPage.classList.remove("hidden");
     loadCatalog();
   }
-}
+  if(page=="account"){
+    accountPage.classList.remove("hidden");
+  }
+};
 
-window.goCatalog=()=>show("#catalog");
-
-// AUTH FUNC
+// AUTH
 window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value);
 window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.value);
 window.logout=()=>signOut(auth);
@@ -213,14 +211,25 @@ window.upload=async()=>{
     userId:user.uid
   });
 
-  alert("Produk berhasil");
+  alert("Produk berhasil ditambahkan");
 };
 
 // LOAD CATALOG
 async function loadCatalog(){
-  const snap=await getDocs(collection(db,"produk"));
-  let html="";
+  loading.style.display="block";
+  empty.classList.add("hidden");
+  catalog.innerHTML="";
 
+  const snap=await getDocs(collection(db,"produk"));
+
+  loading.style.display="none";
+
+  if(snap.empty){
+    empty.classList.remove("hidden");
+    return;
+  }
+
+  let html="";
   snap.forEach(doc=>{
     const p=doc.data();
     const id=doc.id;
@@ -242,6 +251,7 @@ async function loadCatalog(){
   });
 
   catalog.innerHTML=html;
+  cartBox.classList.remove("hidden");
 }
 
 // CART
@@ -272,20 +282,20 @@ function updateCart(){
     html+=`${i.nama} x${i.qty}<br>`;
   }
 
-  html+=`<hr><div class="total">Total: Rp ${total}</div>`;
+  html+=`<hr>Total: Rp ${total}`;
   cart.innerHTML=html;
 }
 
 // CHECKOUT
 window.checkout=()=>{
-  let text="*Pesanan EVI STORE*%0A";
+  let text="Pesanan:%0A";
 
   for(let id in cartData){
     let i=cartData[id];
     text+=`${i.nama} x${i.qty}%0A`;
   }
 
-  let wa="628XXXXXXXXXX";
+  let wa="6282285712293";
   window.open(`https://wa.me/${wa}?text=${text}`);
 };
 </script>

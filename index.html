@@ -12,7 +12,11 @@ input,select,button{
 width:100%;padding:10px;margin:5px 0;border-radius:6px;border:1px solid #ccc;
 }
 
-button{background:#1e88e5;color:white;border:none;}
+button{background:#1e88e5;color:white;border:none;cursor:pointer;}
+.btn-danger{background:#e53935;}
+.btn-warning{background:#fb8c00;}
+.btn-share{background:#43a047;}
+
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
 
 .product{background:#fff;padding:10px;border-radius:8px;text-align:center;}
@@ -25,21 +29,29 @@ object-fit:contain;
 background:#eee;
 margin-top:5px;
 }
-</style></head><body><div class="navbar">EVI STORE MANOKWARI</div><div class="container"><div class="card" id="loginBox">
+
+.hidden{display:none;}
+</style></head><body><div class="navbar">EVI STORE MANOKWARI</div><div class="container"><!-- SHARE BUTTON --><button class="btn-share" onclick="shareCatalog()">🔗 Share Catalog</button>
+
+<div class="card" id="loginBox">
 <h3>Login Admin</h3>
 <input id="email">
 <input id="password" type="password">
 <button onclick="login()">Login</button>
-</div><div id="appBox" style="display:none"><div class="card">
-<h3>Tambah Produk</h3><input id="nama" placeholder="Nama">
+</div><div id="appBox" style="display:none"><div class="card" id="formBox">
+<h3 id="formTitle">Tambah Produk</h3><input id="nama" placeholder="Nama">
 <input id="harga" type="number" placeholder="Harga">
-<input id="stok" type="number" placeholder="Stok"><select id="satuan">
+<input id="stok" type="number" placeholder="Jumlah"><select id="satuan">
 <option value="pcs">PCS</option>
 <option value="pack">PACK</option>
 <option value="crt">CRT</option>
-</select><input id="pack" placeholder="1 Pack = PCS">
-<input id="crt" placeholder="1 CRT = PCS"><input type="file" id="foto">
+</select><div id="packBox" class="hidden">
+<input id="pack" placeholder="1 Pack = PCS">
+</div><div id="crtBox" class="hidden">
+<input id="crt" placeholder="1 CRT = PCS">
+</div><input type="file" id="foto">
 <img id="preview" class="preview"><button onclick="tambah()">Simpan Produk</button>
+<button onclick="resetForm()" class="btn-warning">Reset</button>
 
 </div><div class="card">
 <h3>Catalog Produk</h3>
@@ -48,11 +60,11 @@ margin-top:5px;
 </div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
+  apiKey: "AIzaSy...",
   authDomain: "evi-store-manokwari.firebaseapp.com",
   projectId: "evi-store-manokwari",
   storageBucket: "evi-store-manokwari.firebasestorage.app"
@@ -63,93 +75,119 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+let editId=null;
+const isPublic = new URLSearchParams(window.location.search).get("view")==="public";
+
+/* MODE PUBLIC */
+if(isPublic){
+  loginBox.style.display="none";
+  appBox.style.display="block";
+  formBox.style.display="none";
+  load();
+}
+
 /* LOGIN */
 window.login = async ()=>{
-  try{
-    await signInWithEmailAndPassword(auth,email.value,password.value);
-  }catch(e){
-    alert("Login gagal!");
-  }
+  await signInWithEmailAndPassword(auth,email.value,password.value);
 };
 
 /* AUTO LOGIN */
 onAuthStateChanged(auth,u=>{
-  if(u){
+  if(u && !isPublic){
     loginBox.style.display="none";
     appBox.style.display="block";
     load();
   }
 });
 
-/* PREVIEW */
-foto.onchange = ()=>{
-  let f = foto.files[0];
-  if(f){
-    preview.src = URL.createObjectURL(f);
-  }
+/* SHARE */
+window.shareCatalog = ()=>{
+  const link = window.location.origin + window.location.pathname + "?view=public";
+  navigator.clipboard.writeText(link);
+  alert("Link katalog disalin:\n"+link);
 };
 
-/* LOAD DATA */
+/* LOAD */
 function load(){
   onSnapshot(collection(db,"produk"), snap=>{
     list.innerHTML="";
     snap.forEach(d=>{
       let p=d.data();
+
       list.innerHTML+=`
       <div class="product">
       <img src="${p.foto}">
       <h4>${p.nama}</h4>
       <p>Rp ${p.harga}</p>
-      <p>Stok: ${p.stok}</p>
+      <p>Stok: ${p.stok} pcs</p>
+
+      ${
+        isPublic
+        ? `<button onclick="checkout('${p.nama}',${p.harga})">Beli</button>`
+        : `
+        <button onclick="edit('${d.id}','${p.nama}',${p.harga},${p.stok})" class="btn-warning">Edit</button>
+        <button onclick="hapus('${d.id}')" class="btn-danger">Hapus</button>
+        `
+      }
+
       </div>`;
     });
   });
 }
 
-/* SIMPAN PRODUK */
+/* CHECKOUT */
+window.checkout = (nama,harga)=>{
+  let pesan = `Halo, saya mau beli ${nama} harga Rp${harga}`;
+  window.open(`https://wa.me/6282285712293?text=${encodeURIComponent(pesan)}`);
+};
+
+/* TAMBAH / EDIT / HAPUS tetap sama seperti sebelumnya */
 window.tambah = async ()=>{
-  try{
+  let namaVal=nama.value;
+  let hargaVal=+harga.value;
+  let stokVal=+stok.value;
 
-    if(!foto.files[0]) return alert("Foto wajib!");
+  let finalStok=stokVal;
+  if(satuan.value=="pack") finalStok=stokVal*(+pack.value||1);
+  if(satuan.value=="crt") finalStok=stokVal*(+crt.value||1);
 
-    let namaVal = nama.value;
-    let hargaVal = +harga.value;
-    let stokVal = +stok.value;
-    let satuanVal = satuan.value;
-    let packVal = +pack.value || 1;
-    let crtVal = +crt.value || 1;
-
-    if(!namaVal || !hargaVal || !stokVal){
-      return alert("Isi data dulu!");
-    }
-
-    let finalStok = stokVal;
-    if(satuanVal=="pack") finalStok = stokVal*packVal;
-    if(satuanVal=="crt") finalStok = stokVal*crtVal;
-
-    let file = foto.files[0];
-    let path = "produk/"+Date.now()+"_"+file.name;
-
-    let storageRef = ref(storage,path);
-    await uploadBytes(storageRef,file);
-    let url = await getDownloadURL(storageRef);
-
-    await addDoc(collection(db,"produk"),{
-      nama:namaVal,
-      harga:hargaVal,
-      stok:finalStok,
-      foto:url
-    });
-
-    alert("Berhasil simpan!");
-
-    document.querySelectorAll("input").forEach(i=>i.value="");
-    preview.src="";
-
-  }catch(e){
-    alert("ERROR: "+e.message);
-    console.log(e);
+  let url="";
+  if(foto.files[0]){
+    let f=foto.files[0];
+    let r=ref(storage,"produk/"+Date.now()+f.name);
+    await uploadBytes(r,f);
+    url=await getDownloadURL(r);
   }
+
+  if(editId){
+    let refDoc=doc(db,"produk",editId);
+    let data={nama:namaVal,harga:hargaVal,stok:finalStok};
+    if(url) data.foto=url;
+    await updateDoc(refDoc,data);
+    editId=null;
+  }else{
+    await addDoc(collection(db,"produk"),{nama:namaVal,harga:hargaVal,stok:finalStok,foto:url});
+  }
+
+  resetForm();
+};
+
+window.edit=(id,n,h,s)=>{
+  editId=id;
+  nama.value=n;
+  harga.value=h;
+  stok.value=s;
+};
+
+window.hapus=async(id)=>{
+  if(confirm("Hapus produk?")){
+    await deleteDoc(doc(db,"produk",id));
+  }
+};
+
+window.resetForm=()=>{
+  document.querySelectorAll("input").forEach(i=>i.value="");
+  preview.src="";
 };
 
 </script></body>

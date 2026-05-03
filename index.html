@@ -3,142 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVI STORE</title>
+<title>Catalog Pro UI</title>
 
 <style>
-body{font-family:sans-serif;background:#f4f6fb;margin:0;}
-.navbar{background:#1e88e5;color:#fff;padding:15px;text-align:center;font-weight:bold;}
-.container{padding:15px;max-width:900px;margin:auto;}
-.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;}
-
-input,select,button{
-width:100%;padding:10px;margin:5px 0;border-radius:6px;border:1px solid #ccc;
+body{
+  font-family:sans-serif;
+  margin:0;
+  background:#f1f3f6;
 }
 
-button{background:#1e88e5;color:#fff;border:none;cursor:pointer;}
-.btn-danger{background:#e53935;}
-.btn-warning{background:#fb8c00;}
-.btn-share{background:#43a047;}
-
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
-
-.product{
-background:#fff;
-padding:10px;
-border-radius:10px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
-text-align:left;
+.header{
+  background:#28a745;
+  color:white;
+  padding:15px;
+  text-align:center;
+  font-size:20px;
 }
 
-.product img{
-width:100%;
-height:140px;
-object-fit:cover;
-border-radius:8px;
-}
-
-.product h4{margin:5px 0;font-size:14px;}
-.product p{margin:2px 0;font-size:13px;color:#555;}
-
-.cart-item{
-display:flex;
-justify-content:space-between;
-background:#f1f1f1;
-padding:6px;
-border-radius:6px;
-margin:5px 0;
-font-size:13px;
-}
+.container{padding:15px;}
 
 .hidden{display:none;}
+
+input,select{
+  padding:10px;
+  margin:5px 0;
+  width:100%;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+button{
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  margin:5px 0;
+  background:#28a745;
+  color:white;
+  width:100%;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:10px;
+}
+
+.card{
+  background:white;
+  border-radius:12px;
+  padding:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.card img{
+  width:100%;
+  height:120px;
+  object-fit:cover;
+  border-radius:10px;
+}
+
+.price{color:#28a745;font-weight:bold;}
+
+.qty{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:5px;
+}
+
+.qty button{
+  width:30px;
+  height:30px;
+  padding:0;
+}
+
+.cartBox{
+  background:white;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="navbar" id="judulToko">EVI STORE</div>
+<div class="header">Catalog Toko</div>
 
 <div class="container">
 
-<button class="btn-share" onclick="shareCatalog()">🔗 Share Catalog</button>
-
 <!-- LOGIN -->
-<div class="card" id="loginBox">
-<h3>Login</h3>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
+<div id="loginPage">
+<input type="password" id="pass" placeholder="Password admin">
 <button onclick="login()">Login</button>
-<button onclick="showRegister()" class="btn-warning">Daftar Toko</button>
 </div>
 
-<!-- REGISTER -->
-<div class="card hidden" id="registerBox">
-<h3>Daftar Toko</h3>
-<input id="regEmail">
-<input id="regPassword" type="password">
-<input id="regNamaToko">
-<input id="regWA">
-<button onclick="register()">Daftar</button>
-<button onclick="showLogin()" class="btn-warning">Kembali</button>
-</div>
-
-<!-- APP -->
-<div id="appBox" style="display:none">
-
-<button onclick="logout()" class="btn-danger">Logout</button>
-
-<!-- PROFIL -->
-<div class="card" id="profilBox">
-<h3>Profil Toko</h3>
-<input id="namaToko">
-<input id="noWA">
-<button onclick="simpanToko()">Simpan</button>
-</div>
-
-<!-- FORM -->
-<div class="card" id="formBox">
+<!-- INPUT -->
+<div id="inputPage" class="hidden">
 <h3>Tambah Produk</h3>
-<input id="nama">
-<input id="harga" type="number">
-<input id="stok" type="number">
+
+<input id="nama" placeholder="Nama">
+<input id="harga" type="number" placeholder="Harga">
+<input id="stok" type="number" placeholder="Stok">
 
 <select id="satuan">
-<option value="pcs">PCS</option>
-<option value="pack">PACK</option>
-<option value="crt">CRT</option>
+<option>pcs</option>
+<option>pack</option>
+<option>crt</option>
 </select>
 
-<input id="pack" placeholder="1 pack = pcs">
-<input id="crt" placeholder="1 crt = pcs">
-
 <input type="file" id="foto">
-<img id="preview" width="100%">
 
-<button onclick="tambah(event)">Simpan Produk</button>
+<button onclick="upload()">Simpan</button>
+<button onclick="goCatalog()">Lihat Catalog</button>
+<button onclick="logout()">Logout</button>
 </div>
 
 <!-- CATALOG -->
-<div class="card">
-<h3>Catalog</h3>
-<div id="list" class="grid"></div>
-</div>
+<div id="catalogPage" class="hidden">
+<div class="grid" id="catalog"></div>
 
-<!-- CART -->
-<div class="card">
-<h3>Keranjang</h3>
-<div id="cartList"></div>
-<h4 id="totalHarga">Total: Rp 0</h4>
-<button onclick="checkoutCart()">Checkout</button>
+<div class="cartBox">
+<h4>Keranjang</h4>
+<div id="cart"></div>
+<button onclick="checkout()">Checkout WhatsApp</button>
+</div>
 </div>
 
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
 
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
   authDomain: "evi-store-manokwari.firebaseapp.com",
@@ -148,183 +147,134 @@ const firebaseConfig = {
   appId: "1:630399354196:web:78cecc396191345ebff4c1"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+firebase.initializeApp(firebaseConfig);
 
-let uid=null, cart=[], tokoData=null, editId=null, unsub=null;
+const db = firebase.firestore();
+const storage = firebase.storage();
 
-const params = new URLSearchParams(location.search);
-const isPublic = params.get("view")==="public";
-const publicId = params.get("id");
+// NAV
+function show(){
+  let h = location.hash || "#catalog";
 
-/* PUBLIC MODE */
-if(isPublic && publicId){
-  loginBox.style.display="none";
-  appBox.style.display="block";
-  formBox.style.display="none";
-  profilBox.style.display="none";
-  document.querySelector(".btn-share").style.display="none";
-  initPublic();
-}
+  loginPage.classList.add("hidden");
+  inputPage.classList.add("hidden");
+  catalogPage.classList.add("hidden");
 
-async function initPublic(){
-  let snap = await getDoc(doc(db,"toko",publicId));
-  tokoData = snap.data();
-  judulToko.innerText = tokoData.namaToko;
-  loadProduk(publicId);
-}
-
-/* UI */
-window.showRegister=()=>{loginBox.classList.add("hidden");registerBox.classList.remove("hidden");};
-window.showLogin=()=>{registerBox.classList.add("hidden");loginBox.classList.remove("hidden");};
-
-/* REGISTER */
-window.register=async()=>{
-  let u=await createUserWithEmailAndPassword(auth,regEmail.value,regPassword.value);
-  uid=u.user.uid;
-  await setDoc(doc(db,"toko",uid),{
-    namaToko:regNamaToko.value,
-    noWA:regWA.value,
-    owner:regEmail.value
-  });
-  alert("Berhasil daftar");
-  showLogin();
-};
-
-/* LOGIN */
-window.login=async()=>{
-  let u=await signInWithEmailAndPassword(auth,email.value,password.value);
-  uid=u.user.uid;
-  loginBox.style.display="none";
-  appBox.style.display="block";
-  await initToko();
-  loadProduk(uid);
-};
-
-window.logout=async()=>{await signOut(auth);location.reload();};
-
-async function initToko(){
-  let snap=await getDoc(doc(db,"toko",uid));
-  tokoData=snap.data();
-  namaToko.value=tokoData.namaToko;
-  noWA.value=tokoData.noWA;
-  judulToko.innerText=tokoData.namaToko;
-}
-
-window.simpanToko=async()=>{
-  await updateDoc(doc(db,"toko",uid),{
-    namaToko:namaToko.value,
-    noWA:noWA.value
-  });
-  alert("Tersimpan");
-};
-
-/* SHARE */
-window.shareCatalog=()=>{
-  let link=location.origin+location.pathname+`?view=public&id=${uid}`;
-  navigator.clipboard.writeText(link);
-  alert("Link:\n"+link);
-};
-
-/* LOAD PRODUK */
-function loadProduk(id){
-  if(unsub) unsub();
-  unsub=onSnapshot(collection(db,"toko",id,"produk"),snap=>{
-    list.innerHTML="";
-    snap.forEach(d=>{
-      let p=d.data();
-      list.innerHTML+=`
-      <div class="product">
-      <img src="${p.foto}">
-      <h4>${p.nama}</h4>
-      <p><b>Rp ${p.harga.toLocaleString()}</b></p>
-      <p>Stok: ${p.stok} ${p.satuan || "pcs"}</p>
-
-      ${
-        isPublic
-        ? `<button onclick="addToCart('${p.nama}',${p.harga})">Tambah</button>`
-        : `<button onclick="hapus('${d.id}')" class="btn-danger">Hapus</button>`
-      }
-      </div>`;
-    });
-  });
-}
-
-/* CART */
-window.addToCart=(n,h)=>{
-  let i=cart.find(x=>x.nama===n);
-  if(i)i.qty++; else cart.push({nama:n,harga:h,qty:1});
-  renderCart();
-};
-
-function renderCart(){
-  let html="", total=0;
-  cart.forEach((i,x)=>{
-    let sub=i.harga*i.qty;
-    total+=sub;
-    html+=`<div class="cart-item">${i.nama} x${i.qty}<span>Rp ${sub.toLocaleString()}</span></div>`;
-  });
-  cartList.innerHTML=html;
-  totalHarga.innerText="Total: Rp "+total.toLocaleString();
-}
-
-/* CHECKOUT (🔥 INVOICE RAPI) */
-window.checkoutCart=()=>{
-  let total=0;
-  let pesan=`🛒 *ORDER ${tokoData.namaToko}*\n\n`;
-
-  cart.forEach((i,x)=>{
-    let sub=i.harga*i.qty;
-    total+=sub;
-    pesan+=`${x+1}. ${i.nama}\n   ${i.qty} x Rp ${i.harga.toLocaleString()} = Rp ${sub.toLocaleString()}\n`;
-  });
-
-  pesan+=`\n💰 *Total: Rp ${total.toLocaleString()}*`;
-  pesan+=`\n\nMohon diproses ya 🙏`;
-
-  window.open(`https://wa.me/${tokoData.noWA}?text=${encodeURIComponent(pesan)}`);
-};
-
-/* TAMBAH */
-window.tambah=async(e)=>{
-  let btn=e.target;
-  btn.disabled=true;
-  btn.innerText="Menyimpan...";
-
-  let finalStok=+stok.value;
-  if(satuan.value=="pack") finalStok=stok.value*(+pack.value||1);
-  if(satuan.value=="crt") finalStok=stok.value*(+crt.value||1);
-
-  let url="";
-  if(foto.files[0]){
-    let r=ref(storage,"produk/"+uid+Date.now());
-    await uploadBytes(r,foto.files[0]);
-    url=await getDownloadURL(r);
+  if(h=="#login"){
+    loginPage.classList.remove("hidden");
+  }else if(h=="#input"){
+    if(localStorage.login=="true"){
+      inputPage.classList.remove("hidden");
+    }else location.hash="#login";
+  }else{
+    catalogPage.classList.remove("hidden");
+    loadCatalog();
   }
+}
+window.onload=show;
+window.onhashchange=show;
 
-  await addDoc(collection(db,"toko",uid,"produk"),{
+// LOGIN
+function login(){
+  if(pass.value=="12345"){
+    localStorage.login="true";
+    location.hash="#input";
+  }
+}
+function logout(){
+  localStorage.removeItem("login");
+  location.hash="#login";
+}
+
+// UPLOAD PRODUK (LEBIH RINGAN)
+async function upload(){
+  const file = foto.files[0];
+
+  const ref = storage.ref("produk/"+Date.now());
+  await ref.put(file);
+
+  const url = await ref.getDownloadURL();
+
+  await db.collection("produk").add({
     nama:nama.value,
-    harga:+harga.value,
-    stok:finalStok,
+    harga:harga.value,
+    stok:stok.value,
     satuan:satuan.value,
     foto:url
   });
 
-  document.querySelectorAll("input").forEach(i=>i.value="");
-  preview.src="";
-  btn.disabled=false;
-  btn.innerText="Simpan Produk";
-};
+  alert("Berhasil upload!");
+}
 
-window.hapus=async(id)=>{
-  if(confirm("Hapus produk?")){
-    await deleteDoc(doc(db,"toko",uid,"produk",id));
+// LOAD CATALOG
+let cartData = {};
+
+async function loadCatalog(){
+  const snap = await db.collection("produk").get();
+  let html="";
+
+  snap.forEach(doc=>{
+    const id = doc.id;
+    const p = doc.data();
+
+    html += `
+    <div class="card">
+      <img src="${p.foto}">
+      <div>${p.nama}</div>
+      <div class="price">Rp ${p.harga}</div>
+
+      <div class="qty">
+        <button onclick="min('${id}')">-</button>
+        <span id="q_${id}">0</span>
+        <button onclick="add('${id}','${p.nama}',${p.harga})">+</button>
+      </div>
+    </div>`;
+  });
+
+  catalog.innerHTML = html;
+}
+
+// CART
+function add(id,nama,harga){
+  if(!cartData[id]) cartData[id]={nama,qty:0,harga};
+  cartData[id].qty++;
+  updateCart();
+}
+
+function min(id){
+  if(cartData[id]){
+    cartData[id].qty--;
+    if(cartData[id].qty<=0) delete cartData[id];
   }
-};
+  updateCart();
+}
 
-foto.onchange=()=>{preview.src=URL.createObjectURL(foto.files[0]);};
+function updateCart(){
+  let html="", total=0;
+
+  for(let id in cartData){
+    let i = cartData[id];
+    total += i.qty*i.harga;
+    document.getElementById("q_"+id).innerText=i.qty;
+    html += `${i.nama} x${i.qty}<br>`;
+  }
+
+  html += `<hr>Total: Rp ${total}`;
+  cart.innerHTML = html;
+}
+
+// CHECKOUT WA
+function checkout(){
+  let text="Pesanan:%0A";
+
+  for(let id in cartData){
+    let i = cartData[id];
+    text += `${i.nama} x${i.qty}%0A`;
+  }
+
+  let wa="6282285712293"; // GANTI
+  window.open(`https://wa.me/${wa}?text=${text}`);
+}
 </script>
 
 </body>

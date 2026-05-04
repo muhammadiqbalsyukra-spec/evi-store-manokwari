@@ -6,11 +6,7 @@
 <title>EVI STORE</title>
 
 <style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:#f5f5f5;
-}
+body{margin:0;font-family:sans-serif;background:#f5f5f5;}
 
 .header{
   background:#25D366;
@@ -41,11 +37,17 @@ button{
 .menu{display:flex;gap:10px;}
 .menu button{flex:1;}
 
-/* GRID CATALOG */
+/* 🔥 GRID FIX */
 #catalog{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  grid-template-columns:repeat(4,1fr);
   gap:10px;
+}
+
+@media(max-width:768px){
+  #catalog{
+    grid-template-columns:repeat(2,1fr);
+  }
 }
 
 .card{
@@ -73,7 +75,6 @@ button{
 .qty button{
   width:30px;
   height:30px;
-  padding:0;
 }
 
 .cart-box{
@@ -91,7 +92,6 @@ button{
 
 <div class="container">
 
-<!-- LOGIN -->
 <div id="loginPage">
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Password">
@@ -99,7 +99,6 @@ button{
 <button onclick="register()">DAFTAR</button>
 </div>
 
-<!-- INPUT -->
 <div id="inputPage" class="hidden">
 <h3>Menu Input</h3>
 
@@ -118,7 +117,6 @@ button{
 <div id="notif"></div>
 </div>
 
-<!-- CATALOG -->
 <div id="catalogPage" class="hidden">
 
 <h3>Catalog</h3>
@@ -137,18 +135,18 @@ button{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-const app = initializeApp({
+const firebaseConfig = {
   apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
   authDomain: "evi-store-manokwari.firebaseapp.com",
   projectId: "evi-store-manokwari",
   storageBucket: "evi-store-manokwari.firebasestorage.app",
   messagingSenderId: "630399354196",
   appId: "1:630399354196:web:78cecc396191345ebff4c1"
-});
+};
 
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -172,10 +170,15 @@ window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value);
 window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.value);
 window.logout=()=>signOut(auth);
 
-// UPLOAD
+// UPLOAD (🔥 langsung refresh karena realtime)
 window.upload=async()=>{
+  if(!foto.files[0]) return alert("Pilih foto");
+
+  notif.innerHTML="Uploading...";
+
   const file=foto.files[0];
   const storageRef=ref(storage,"produk/"+Date.now());
+
   await uploadBytes(storageRef,file);
   const url=await getDownloadURL(storageRef);
 
@@ -187,13 +190,17 @@ window.upload=async()=>{
   });
 
   notif.innerHTML="✅ Berhasil";
+
+  nama.value="";
+  harga.value="";
+  stok.value="";
+  foto.value="";
 };
 
 // NAV
 window.showCatalog=()=>{
   inputPage.classList.add("hidden");
   catalogPage.classList.remove("hidden");
-  loadCatalog();
 };
 
 window.backToInput=()=>{
@@ -201,11 +208,10 @@ window.backToInput=()=>{
   inputPage.classList.remove("hidden");
 };
 
-// LOAD
-async function loadCatalog(){
-  const snap=await getDocs(collection(db,"produk"));
-
+// 🔥 REALTIME LOAD
+onSnapshot(collection(db,"produk"),(snap)=>{
   let html="";
+
   snap.forEach(docSnap=>{
     const p=docSnap.data();
     const id=docSnap.id;
@@ -226,14 +232,12 @@ async function loadCatalog(){
   });
 
   catalog.innerHTML=html;
-}
+});
 
 // CART
 window.add=(id,nama,harga,stok)=>{
   if(!cartData[id]) cartData[id]={nama,qty:0,harga,stok};
-
   if(cartData[id].qty>=stok) return alert("Stok habis");
-
   cartData[id].qty++;
   updateCart();
 };
@@ -273,8 +277,7 @@ window.checkout=async()=>{
     let sub=i.qty*i.harga;
     total+=sub;
 
-    const refDoc=doc(db,"produk",id);
-    await updateDoc(refDoc,{
+    await updateDoc(doc(db,"produk",id),{
       stok:i.stok-i.qty
     });
 
@@ -287,7 +290,6 @@ window.checkout=async()=>{
 
   cartData={};
   updateCart();
-  loadCatalog();
 };
 </script>
 

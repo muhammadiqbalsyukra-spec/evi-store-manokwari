@@ -32,41 +32,64 @@ button{
   color:white;
   font-weight:bold;
   border:none;
+  cursor:pointer;
 }
 
 .menu{display:flex;gap:10px;}
 .menu button{flex:1;}
 
+/* GRID */
 #catalog{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:10px;
+  gap:12px;
 }
 
 @media(max-width:768px){
   #catalog{grid-template-columns:repeat(2,1fr);}
 }
 
+/* CARD */
 .card{
   background:white;
   padding:10px;
   border-radius:12px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
   text-align:center;
+  transition:0.2s;
 }
 
+.card:hover{
+  transform:scale(1.03);
+}
+
+/* IMAGE */
 .card img{
   width:100%;
-  height:120px;
-  object-fit:cover;
-  border-radius:8px;
+  height:140px;
+  object-fit:contain;
+  background:#fff;
+  padding:5px;
+  cursor:pointer;
 }
+
+/* BADGE STOK */
+.badge{
+  display:inline-block;
+  padding:3px 6px;
+  border-radius:6px;
+  font-size:12px;
+  margin-top:3px;
+}
+
+.stok-aman{background:#d4edda;color:#155724;}
+.stok-tipis{background:#f8d7da;color:#721c24;}
 
 .qty{
   display:flex;
   justify-content:center;
   gap:5px;
-  margin-top:5px;
+  margin-top:8px;
 }
 
 .qty button{
@@ -74,11 +97,33 @@ button{
   height:30px;
 }
 
+/* CART */
 .cart-box{
   background:white;
   padding:10px;
   border-radius:10px;
   margin-top:10px;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  top:0;left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.8);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  display:none;
+}
+
+.modal img{
+  max-width:90%;
+  max-height:90%;
+  background:white;
+  padding:10px;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -133,22 +178,26 @@ button{
 
 </div>
 
+<!-- MODAL -->
+<div id="modal" class="modal" onclick="closeModal()">
+<img id="modalImg">
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-const firebaseConfig = {
+const app = initializeApp({
   apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
   authDomain: "evi-store-manokwari.firebaseapp.com",
   projectId: "evi-store-manokwari",
   storageBucket: "evi-store-manokwari.firebasestorage.app",
   messagingSenderId: "630399354196",
   appId: "1:630399354196:web:78cecc396191345ebff4c1"
-};
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
@@ -167,53 +216,39 @@ onAuthStateChanged(auth,(u)=>{
   }
 });
 
-window.login=()=>{
-  signInWithEmailAndPassword(auth,email.value,password.value)
-  .then(()=>alert("Login berhasil"))
-  .catch(e=>alert(e.message));
-};
+window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value)
+.catch(e=>alert(e.message));
 
-window.register=()=>{
-  createUserWithEmailAndPassword(auth,email.value,password.value)
-  .then(()=>alert("Akun dibuat"))
-  .catch(e=>alert(e.message));
-};
+window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.value)
+.catch(e=>alert(e.message));
 
 window.logout=()=>signOut(auth);
 
 /* UPLOAD */
 window.upload=async()=>{
-  try{
-    if(!nama.value || !harga.value || !stok.value){
-      return alert("Lengkapi data");
-    }
+  if(!foto.files[0]) return alert("Pilih foto");
 
-    if(!foto.files[0]) return alert("Pilih foto");
+  notif.innerHTML="Uploading...";
 
-    notif.innerHTML="Uploading...";
+  const file=foto.files[0];
+  const storageRef=ref(storage,"produk/"+Date.now());
 
-    const file=foto.files[0];
-    const storageRef=ref(storage,"produk/"+Date.now());
+  await uploadBytes(storageRef,file);
+  const url=await getDownloadURL(storageRef);
 
-    await uploadBytes(storageRef,file);
-    const url=await getDownloadURL(storageRef);
+  await addDoc(collection(db,"produk"),{
+    nama:nama.value,
+    harga:+harga.value,
+    stok:+stok.value,
+    foto:url
+  });
 
-    await addDoc(collection(db,"produk"),{
-      nama:nama.value,
-      harga:+harga.value,
-      stok:+stok.value,
-      foto:url
-    });
+  notif.innerHTML="✅ Berhasil";
 
-    notif.innerHTML="✅ Berhasil";
-
-    nama.value="";
-    harga.value="";
-    stok.value="";
-    foto.value="";
-  }catch(e){
-    alert(e.message);
-  }
+  nama.value="";
+  harga.value="";
+  stok.value="";
+  foto.value="";
 };
 
 /* NAV */
@@ -235,12 +270,16 @@ onSnapshot(collection(db,"produk"),(snap)=>{
     const p=docSnap.data();
     const id=docSnap.id;
 
+    let badge = p.stok <= 5
+      ? `<span class="badge stok-tipis">Hampir habis</span>`
+      : `<span class="badge stok-aman">Tersedia</span>`;
+
     html+=`
     <div class="card">
-      <img src="${p.foto}">
+      <img src="${p.foto}" onclick="showImage('${p.foto}')">
       <b>${p.nama}</b><br>
       Rp ${p.harga}<br>
-      <small>Stok: ${p.stok}</small>
+      ${badge}
 
       <div class="qty">
         <button onclick="min('${id}')">-</button>
@@ -252,6 +291,16 @@ onSnapshot(collection(db,"produk"),(snap)=>{
 
   catalog.innerHTML=html;
 });
+
+/* MODAL */
+window.showImage=(src)=>{
+  modal.style.display="flex";
+  modalImg.src=src;
+};
+
+window.closeModal=()=>{
+  modal.style.display="none";
+};
 
 /* CART */
 window.add=(id,nama,harga,stok)=>{

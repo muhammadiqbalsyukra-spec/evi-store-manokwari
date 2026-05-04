@@ -38,7 +38,6 @@ button{
 .menu{display:flex;gap:10px;}
 .menu button{flex:1;}
 
-/* GRID */
 #catalog{
   display:grid;
   grid-template-columns:repeat(4,1fr);
@@ -49,7 +48,6 @@ button{
   #catalog{grid-template-columns:repeat(2,1fr);}
 }
 
-/* CARD */
 .card{
   background:white;
   padding:10px;
@@ -59,11 +57,8 @@ button{
   transition:0.2s;
 }
 
-.card:hover{
-  transform:scale(1.03);
-}
+.card:hover{transform:scale(1.03);}
 
-/* IMAGE */
 .card img{
   width:100%;
   height:140px;
@@ -73,7 +68,6 @@ button{
   cursor:pointer;
 }
 
-/* BADGE STOK */
 .badge{
   display:inline-block;
   padding:3px 6px;
@@ -97,7 +91,6 @@ button{
   height:30px;
 }
 
-/* CART */
 .cart-box{
   background:white;
   padding:10px;
@@ -105,17 +98,15 @@ button{
   margin-top:10px;
 }
 
-/* MODAL */
 .modal{
   position:fixed;
   top:0;left:0;
   width:100%;
   height:100%;
   background:rgba(0,0,0,0.8);
-  display:flex;
+  display:none;
   justify-content:center;
   align-items:center;
-  display:none;
 }
 
 .modal img{
@@ -155,6 +146,7 @@ button{
 
 <div class="menu">
 <button onclick="showCatalog()">CATALOG</button>
+<button onclick="shareCatalog()">SHARE CATALOG</button>
 <button onclick="logout()">LOGOUT</button>
 </div>
 
@@ -204,8 +196,20 @@ const storage = getStorage(app);
 
 let cartData={};
 
+/* 🔗 MODE PUBLIC */
+const params = new URLSearchParams(location.search);
+const isPublic = params.get("user") === "public";
+
+if(isPublic){
+  loginPage.classList.add("hidden");
+  inputPage.classList.add("hidden");
+  catalogPage.classList.remove("hidden");
+}
+
 /* AUTH */
 onAuthStateChanged(auth,(u)=>{
+  if(isPublic) return;
+
   if(u){
     loginPage.classList.add("hidden");
     inputPage.classList.remove("hidden");
@@ -223,6 +227,13 @@ window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.val
 .catch(e=>alert(e.message));
 
 window.logout=()=>signOut(auth);
+
+/* SHARE */
+window.shareCatalog=()=>{
+  let link = location.origin + location.pathname + "?user=public";
+  navigator.clipboard.writeText(link);
+  alert("Link catalog disalin:\n"+link);
+};
 
 /* UPLOAD */
 window.upload=async()=>{

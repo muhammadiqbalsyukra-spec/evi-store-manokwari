@@ -7,15 +7,7 @@
 
 <style>
 body{margin:0;font-family:sans-serif;background:#f5f5f5;}
-
-.header{
-  background:#25D366;
-  color:white;
-  padding:15px;
-  text-align:center;
-  font-weight:bold;
-}
-
+.header{background:#25D366;color:white;padding:15px;text-align:center;font-weight:bold;}
 .container{padding:15px;}
 .hidden{display:none;}
 
@@ -54,10 +46,7 @@ button{
   border-radius:12px;
   box-shadow:0 2px 6px rgba(0,0,0,0.1);
   text-align:center;
-  transition:0.2s;
 }
-
-.card:hover{transform:scale(1.03);}
 
 .card img{
   width:100%;
@@ -65,19 +54,7 @@ button{
   object-fit:contain;
   background:#fff;
   padding:5px;
-  cursor:pointer;
 }
-
-.badge{
-  display:inline-block;
-  padding:3px 6px;
-  border-radius:6px;
-  font-size:12px;
-  margin-top:3px;
-}
-
-.stok-aman{background:#d4edda;color:#155724;}
-.stok-tipis{background:#f8d7da;color:#721c24;}
 
 .qty{
   display:flex;
@@ -96,25 +73,6 @@ button{
   padding:10px;
   border-radius:10px;
   margin-top:10px;
-}
-
-.modal{
-  position:fixed;
-  top:0;left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.8);
-  display:none;
-  justify-content:center;
-  align-items:center;
-}
-
-.modal img{
-  max-width:90%;
-  max-height:90%;
-  background:white;
-  padding:10px;
-  border-radius:10px;
 }
 </style>
 </head>
@@ -164,20 +122,18 @@ button{
 <h3>Keranjang</h3>
 <div id="cart" class="cart-box"></div>
 
-<button onclick="checkout()">CHECKOUT / SHARE WA</button>
-
+<div class="menu">
+<button onclick="checkout()">CHECKOUT</button>
+<button onclick="shareWA()">SHARE WA</button>
 </div>
 
 </div>
 
-<!-- MODAL -->
-<div id="modal" class="modal" onclick="closeModal()">
-<img id="modalImg">
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -196,7 +152,7 @@ const storage = getStorage(app);
 
 let cartData={};
 
-/* 🔗 MODE PUBLIC */
+/* MODE PUBLIC */
 const params = new URLSearchParams(location.search);
 const isPublic = params.get("user") === "public";
 
@@ -228,7 +184,7 @@ window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.val
 
 window.logout=()=>signOut(auth);
 
-/* SHARE */
+/* SHARE LINK */
 window.shareCatalog=()=>{
   let link = location.origin + location.pathname + "?user=public";
   navigator.clipboard.writeText(link);
@@ -281,43 +237,62 @@ onSnapshot(collection(db,"produk"),(snap)=>{
     const p=docSnap.data();
     const id=docSnap.id;
 
-    let badge = p.stok <= 5
-      ? `<span class="badge stok-tipis">Hampir habis</span>`
-      : `<span class="badge stok-aman">Tersedia</span>`;
-
     html+=`
     <div class="card">
-      <img src="${p.foto}" onclick="showImage('${p.foto}')">
+      <img src="${p.foto}">
       <b>${p.nama}</b><br>
       Rp ${p.harga}<br>
-      ${badge}
+      <small>Stok: ${p.stok}</small>
 
       <div class="qty">
         <button onclick="min('${id}')">-</button>
         <span id="q_${id}">0</span>
         <button onclick="add('${id}','${p.nama}',${p.harga},${p.stok})">+</button>
       </div>
+
+      ${!isPublic ? `
+      <div style="margin-top:8px;">
+        <button onclick="editProduk('${id}','${p.nama}',${p.harga},${p.stok})">✏️</button>
+        <button onclick="hapusProduk('${id}')">🗑️</button>
+      </div>` : ``}
+
     </div>`;
   });
 
   catalog.innerHTML=html;
 });
 
-/* MODAL */
-window.showImage=(src)=>{
-  modal.style.display="flex";
-  modalImg.src=src;
+/* EDIT */
+window.editProduk=async(id,nama,harga,stok)=>{
+  let n = prompt("Nama:", nama);
+  if(n===null) return;
+
+  let h = prompt("Harga:", harga);
+  if(h===null) return;
+
+  let s = prompt("Stok:", stok);
+  if(s===null) return;
+
+  await updateDoc(doc(db,"produk",id),{
+    nama:n,
+    harga:+h,
+    stok:+s
+  });
+
+  alert("Produk diupdate");
 };
 
-window.closeModal=()=>{
-  modal.style.display="none";
+/* HAPUS */
+window.hapusProduk=async(id)=>{
+  if(!confirm("Yakin hapus produk?")) return;
+  await deleteDoc(doc(db,"produk",id));
+  alert("Produk dihapus");
 };
 
 /* CART */
 window.add=(id,nama,harga,stok)=>{
   if(!cartData[id]) cartData[id]={nama,qty:0,harga,stok};
   if(cartData[id].qty>=stok) return alert("Stok habis");
-
   cartData[id].qty++;
   updateCart();
 };
@@ -354,27 +329,40 @@ window.checkout=async()=>{
     return alert("Keranjang kosong");
   }
 
+  for(let id in cartData){
+    let i=cartData[id];
+
+    await updateDoc(doc(db,"produk",id),{
+      stok:i.stok-i.qty
+    });
+  }
+
+  alert("Checkout berhasil");
+
+  cartData={};
+  updateCart();
+};
+
+/* SHARE WA */
+window.shareWA=()=>{
+  if(Object.keys(cartData).length===0){
+    return alert("Keranjang kosong");
+  }
+
   let total=0;
-  let text="🛒 *EVI STORE*%0A%0A";
+  let text="Pesanan:%0A";
 
   for(let id in cartData){
     let i=cartData[id];
     let sub=i.qty*i.harga;
     total+=sub;
 
-    await updateDoc(doc(db,"produk",id),{
-      stok:i.stok-i.qty
-    });
-
-    text+=`- ${i.nama} x${i.qty} = Rp ${sub}%0A`;
+    text+=`${i.nama} x${i.qty} = Rp ${sub}%0A`;
   }
 
-  text+=`%0A💰 Total: Rp ${total}`;
+  text+=`Total: Rp ${total}`;
 
   window.open(`https://wa.me/6282285712293?text=${text}`);
-
-  cartData={};
-  updateCart();
 };
 </script>
 

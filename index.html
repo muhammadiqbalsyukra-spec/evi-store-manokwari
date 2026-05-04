@@ -6,35 +6,82 @@
 <title>EVI STORE</title>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#f5f5f5;}
-.header{background:#25D366;color:white;padding:15px;text-align:center;font-weight:bold;}
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#f5f5f5;
+}
+
+.header{
+  background:#25D366;
+  color:white;
+  padding:15px;
+  text-align:center;
+  font-weight:bold;
+}
 
 .container{padding:15px;}
 .hidden{display:none;}
 
 input{
-  width:100%;padding:10px;margin:5px 0;
-  border-radius:8px;border:1px solid #ccc;
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
 }
 
 button{
-  width:100%;padding:10px;margin:5px 0;
-  border:none;border-radius:8px;
-  background:#25D366;color:white;font-weight:bold;
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border:none;
+  border-radius:8px;
+  background:#25D366;
+  color:white;
+  font-weight:bold;
 }
 
 .menu{display:flex;gap:10px;}
 .menu button{flex:1;}
 
 .card{
-  background:white;padding:10px;margin:10px 0;
-  border-radius:10px;
+  background:white;
+  padding:12px;
+  margin:10px 0;
+  border-radius:12px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  display:flex;
+  gap:10px;
+  align-items:center;
 }
 
-img{width:100%;max-width:120px;}
+.card img{
+  width:80px;
+  height:80px;
+  object-fit:cover;
+  border-radius:8px;
+}
 
-.qty{display:flex;gap:5px;align-items:center;}
-.qty button{width:30px;height:30px;padding:0;}
+.qty{
+  display:flex;
+  gap:5px;
+  align-items:center;
+  margin-top:5px;
+}
+
+.qty button{
+  width:30px;
+  height:30px;
+  padding:0;
+}
+
+.cart-box{
+  background:white;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+}
 </style>
 </head>
 
@@ -75,13 +122,12 @@ img{width:100%;max-width:120px;}
 <div id="catalogPage" class="hidden">
 
 <h3>Catalog</h3>
-
 <button onclick="backToInput()">⬅ Kembali</button>
 
 <div id="catalog"></div>
 
 <h3>Keranjang</h3>
-<div id="cart"></div>
+<div id="cart" class="cart-box"></div>
 
 <button onclick="checkout()">CHECKOUT / SHARE WA</button>
 
@@ -91,7 +137,7 @@ img{width:100%;max-width:120px;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -112,7 +158,7 @@ const storage = getStorage(app);
 let user=null;
 let cartData={};
 
-// AUTH STATE
+// AUTH
 onAuthStateChanged(auth,(u)=>{
   user=u;
   if(u){
@@ -125,7 +171,6 @@ onAuthStateChanged(auth,(u)=>{
   }
 });
 
-// LOGIN
 window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value)
 .catch(e=>alert(e.message));
 
@@ -134,7 +179,7 @@ window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.val
 
 window.logout=()=>signOut(auth);
 
-// UPLOAD PRODUK (FIX BUG)
+// UPLOAD
 window.upload=async()=>{
   try{
     if(!nama.value || !harga.value || !stok.value){
@@ -142,7 +187,7 @@ window.upload=async()=>{
     }
 
     if(!foto.files[0]){
-      return notif.innerHTML="⚠️ Pilih foto dulu";
+      return notif.innerHTML="⚠️ Pilih foto";
     }
 
     notif.innerHTML="⏳ Uploading...";
@@ -161,7 +206,7 @@ window.upload=async()=>{
       userId:user.uid
     });
 
-    notif.innerHTML="✅ Produk berhasil disimpan";
+    notif.innerHTML="✅ Berhasil";
 
     nama.value="";
     harga.value="";
@@ -169,7 +214,7 @@ window.upload=async()=>{
     foto.value="";
 
   }catch(e){
-    notif.innerHTML="❌ Error: "+e.message;
+    notif.innerHTML="❌ "+e.message;
   }
 };
 
@@ -190,20 +235,23 @@ async function loadCatalog(){
   const snap=await getDocs(collection(db,"produk"));
 
   let html="";
-  snap.forEach(doc=>{
-    const p=doc.data();
-    const id=doc.id;
+  snap.forEach(docSnap=>{
+    const p=docSnap.data();
+    const id=docSnap.id;
 
     html+=`
     <div class="card">
       <img src="${p.foto}">
-      <b>${p.nama}</b><br>
-      Rp ${p.harga}<br>
+      <div style="flex:1;">
+        <b>${p.nama}</b><br>
+        Rp ${p.harga}<br>
+        <small>Stok: <b id="stok_${id}">${p.stok}</b></small>
 
-      <div class="qty">
-        <button onclick="min('${id}')">-</button>
-        <span id="q_${id}">0</span>
-        <button onclick="add('${id}','${p.nama}',${p.harga})">+</button>
+        <div class="qty">
+          <button onclick="min('${id}')">-</button>
+          <span id="q_${id}">0</span>
+          <button onclick="add('${id}','${p.nama}',${p.harga},${p.stok})">+</button>
+        </div>
       </div>
     </div>`;
   });
@@ -212,8 +260,13 @@ async function loadCatalog(){
 }
 
 // CART
-window.add=(id,nama,harga)=>{
-  if(!cartData[id]) cartData[id]={nama,qty:0,harga};
+window.add=(id,nama,harga,stok)=>{
+  if(!cartData[id]) cartData[id]={nama,qty:0,harga,stok};
+
+  if(cartData[id].qty >= stok){
+    return alert("Stok tidak cukup");
+  }
+
   cartData[id].qty++;
   updateCart();
 };
@@ -236,15 +289,15 @@ function updateCart(){
     let el=document.getElementById("q_"+id);
     if(el) el.innerText=i.qty;
 
-    html+=`${i.nama} x${i.qty}<br>`;
+    html+=`${i.nama} x${i.qty} = Rp ${i.qty*i.harga}<br>`;
   }
 
-  html+=`<hr>Total: Rp ${total}`;
+  html+=`<hr><b>Total: Rp ${total}</b>`;
   cart.innerHTML=html;
 }
 
-// CHECKOUT WA
-window.checkout=()=>{
+// CHECKOUT
+window.checkout=async()=>{
   if(Object.keys(cartData).length===0){
     return alert("Keranjang kosong");
   }
@@ -253,10 +306,22 @@ window.checkout=()=>{
 
   for(let id in cartData){
     let i=cartData[id];
+
+    // update stok
+    const refDoc = doc(db,"produk",id);
+    await updateDoc(refDoc,{
+      stok: i.stok - i.qty
+    });
+
     text+=`${i.nama} x${i.qty}%0A`;
   }
 
   let wa="6282285712293";
+
+  cartData={};
+  updateCart();
+  loadCatalog();
+
   window.open(`https://wa.me/${wa}?text=${text}`);
 };
 </script>

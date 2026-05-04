@@ -37,7 +37,6 @@ button{
 .menu{display:flex;gap:10px;}
 .menu button{flex:1;}
 
-/* 🔥 GRID FIX */
 #catalog{
   display:grid;
   grid-template-columns:repeat(4,1fr);
@@ -45,9 +44,7 @@ button{
 }
 
 @media(max-width:768px){
-  #catalog{
-    grid-template-columns:repeat(2,1fr);
-  }
+  #catalog{grid-template-columns:repeat(2,1fr);}
 }
 
 .card{
@@ -92,6 +89,7 @@ button{
 
 <div class="container">
 
+<!-- LOGIN -->
 <div id="loginPage">
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Password">
@@ -99,6 +97,7 @@ button{
 <button onclick="register()">DAFTAR</button>
 </div>
 
+<!-- INPUT -->
 <div id="inputPage" class="hidden">
 <h3>Menu Input</h3>
 
@@ -117,6 +116,7 @@ button{
 <div id="notif"></div>
 </div>
 
+<!-- CATALOG -->
 <div id="catalogPage" class="hidden">
 
 <h3>Catalog</h3>
@@ -148,13 +148,14 @@ const firebaseConfig = {
   appId: "1:630399354196:web:78cecc396191345ebff4c1"
 };
 
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
 let cartData={};
 
-// AUTH
+/* AUTH */
 onAuthStateChanged(auth,(u)=>{
   if(u){
     loginPage.classList.add("hidden");
@@ -166,38 +167,56 @@ onAuthStateChanged(auth,(u)=>{
   }
 });
 
-window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value);
-window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.value);
-window.logout=()=>signOut(auth);
-
-// UPLOAD (🔥 langsung refresh karena realtime)
-window.upload=async()=>{
-  if(!foto.files[0]) return alert("Pilih foto");
-
-  notif.innerHTML="Uploading...";
-
-  const file=foto.files[0];
-  const storageRef=ref(storage,"produk/"+Date.now());
-
-  await uploadBytes(storageRef,file);
-  const url=await getDownloadURL(storageRef);
-
-  await addDoc(collection(db,"produk"),{
-    nama:nama.value,
-    harga:+harga.value,
-    stok:+stok.value,
-    foto:url
-  });
-
-  notif.innerHTML="✅ Berhasil";
-
-  nama.value="";
-  harga.value="";
-  stok.value="";
-  foto.value="";
+window.login=()=>{
+  signInWithEmailAndPassword(auth,email.value,password.value)
+  .then(()=>alert("Login berhasil"))
+  .catch(e=>alert(e.message));
 };
 
-// NAV
+window.register=()=>{
+  createUserWithEmailAndPassword(auth,email.value,password.value)
+  .then(()=>alert("Akun dibuat"))
+  .catch(e=>alert(e.message));
+};
+
+window.logout=()=>signOut(auth);
+
+/* UPLOAD */
+window.upload=async()=>{
+  try{
+    if(!nama.value || !harga.value || !stok.value){
+      return alert("Lengkapi data");
+    }
+
+    if(!foto.files[0]) return alert("Pilih foto");
+
+    notif.innerHTML="Uploading...";
+
+    const file=foto.files[0];
+    const storageRef=ref(storage,"produk/"+Date.now());
+
+    await uploadBytes(storageRef,file);
+    const url=await getDownloadURL(storageRef);
+
+    await addDoc(collection(db,"produk"),{
+      nama:nama.value,
+      harga:+harga.value,
+      stok:+stok.value,
+      foto:url
+    });
+
+    notif.innerHTML="✅ Berhasil";
+
+    nama.value="";
+    harga.value="";
+    stok.value="";
+    foto.value="";
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+/* NAV */
 window.showCatalog=()=>{
   inputPage.classList.add("hidden");
   catalogPage.classList.remove("hidden");
@@ -208,7 +227,7 @@ window.backToInput=()=>{
   inputPage.classList.remove("hidden");
 };
 
-// 🔥 REALTIME LOAD
+/* REALTIME */
 onSnapshot(collection(db,"produk"),(snap)=>{
   let html="";
 
@@ -234,10 +253,11 @@ onSnapshot(collection(db,"produk"),(snap)=>{
   catalog.innerHTML=html;
 });
 
-// CART
+/* CART */
 window.add=(id,nama,harga,stok)=>{
   if(!cartData[id]) cartData[id]={nama,qty:0,harga,stok};
   if(cartData[id].qty>=stok) return alert("Stok habis");
+
   cartData[id].qty++;
   updateCart();
 };
@@ -258,7 +278,8 @@ function updateCart(){
     let sub=i.qty*i.harga;
     total+=sub;
 
-    document.getElementById("q_"+id).innerText=i.qty;
+    let el=document.getElementById("q_"+id);
+    if(el) el.innerText=i.qty;
 
     html+=`- ${i.nama} x${i.qty} = Rp ${sub}<br>`;
   }
@@ -267,8 +288,12 @@ function updateCart(){
   cart.innerHTML=html;
 }
 
-// CHECKOUT
+/* CHECKOUT */
 window.checkout=async()=>{
+  if(Object.keys(cartData).length===0){
+    return alert("Keranjang kosong");
+  }
+
   let total=0;
   let text="🛒 *EVI STORE*%0A%0A";
 

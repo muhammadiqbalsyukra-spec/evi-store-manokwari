@@ -23,7 +23,7 @@ body{
 .container{padding:15px;}
 .hidden{display:none;}
 
-input{
+input,button{
   width:100%;
   padding:10px;
   margin:5px 0;
@@ -32,41 +32,41 @@ input{
 }
 
 button{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-  border:none;
-  border-radius:8px;
   background:#25D366;
   color:white;
   font-weight:bold;
+  border:none;
 }
 
 .menu{display:flex;gap:10px;}
 .menu button{flex:1;}
 
+/* GRID CATALOG */
+#catalog{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+}
+
 .card{
   background:white;
-  padding:12px;
-  margin:10px 0;
+  padding:10px;
   border-radius:12px;
   box-shadow:0 2px 5px rgba(0,0,0,0.1);
-  display:flex;
-  gap:10px;
-  align-items:center;
+  text-align:center;
 }
 
 .card img{
-  width:80px;
-  height:80px;
+  width:100%;
+  height:120px;
   object-fit:cover;
   border-radius:8px;
 }
 
 .qty{
   display:flex;
+  justify-content:center;
   gap:5px;
-  align-items:center;
   margin-top:5px;
 }
 
@@ -141,26 +141,23 @@ import { getFirestore, collection, addDoc, getDocs, doc, updateDoc } from "https
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-const firebaseConfig = {
+const app = initializeApp({
   apiKey: "AIzaSyAWy6VGNZCzqFJ4v9dw1Ur8zY9F7-rcuyc",
   authDomain: "evi-store-manokwari.firebaseapp.com",
   projectId: "evi-store-manokwari",
   storageBucket: "evi-store-manokwari.firebasestorage.app",
   messagingSenderId: "630399354196",
   appId: "1:630399354196:web:78cecc396191345ebff4c1"
-};
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-let user=null;
 let cartData={};
 
 // AUTH
 onAuthStateChanged(auth,(u)=>{
-  user=u;
   if(u){
     loginPage.classList.add("hidden");
     inputPage.classList.remove("hidden");
@@ -171,51 +168,25 @@ onAuthStateChanged(auth,(u)=>{
   }
 });
 
-window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value)
-.catch(e=>alert(e.message));
-
-window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.value)
-.catch(e=>alert(e.message));
-
+window.login=()=>signInWithEmailAndPassword(auth,email.value,password.value);
+window.register=()=>createUserWithEmailAndPassword(auth,email.value,password.value);
 window.logout=()=>signOut(auth);
 
 // UPLOAD
 window.upload=async()=>{
-  try{
-    if(!nama.value || !harga.value || !stok.value){
-      return notif.innerHTML="⚠️ Lengkapi semua data";
-    }
+  const file=foto.files[0];
+  const storageRef=ref(storage,"produk/"+Date.now());
+  await uploadBytes(storageRef,file);
+  const url=await getDownloadURL(storageRef);
 
-    if(!foto.files[0]){
-      return notif.innerHTML="⚠️ Pilih foto";
-    }
+  await addDoc(collection(db,"produk"),{
+    nama:nama.value,
+    harga:+harga.value,
+    stok:+stok.value,
+    foto:url
+  });
 
-    notif.innerHTML="⏳ Uploading...";
-
-    const file=foto.files[0];
-    const storageRef=ref(storage,"produk/"+Date.now());
-
-    await uploadBytes(storageRef,file);
-    const url=await getDownloadURL(storageRef);
-
-    await addDoc(collection(db,"produk"),{
-      nama:nama.value,
-      harga:Number(harga.value),
-      stok:Number(stok.value),
-      foto:url,
-      userId:user.uid
-    });
-
-    notif.innerHTML="✅ Berhasil";
-
-    nama.value="";
-    harga.value="";
-    stok.value="";
-    foto.value="";
-
-  }catch(e){
-    notif.innerHTML="❌ "+e.message;
-  }
+  notif.innerHTML="✅ Berhasil";
 };
 
 // NAV
@@ -230,7 +201,7 @@ window.backToInput=()=>{
   inputPage.classList.remove("hidden");
 };
 
-// LOAD CATALOG
+// LOAD
 async function loadCatalog(){
   const snap=await getDocs(collection(db,"produk"));
 
@@ -242,16 +213,14 @@ async function loadCatalog(){
     html+=`
     <div class="card">
       <img src="${p.foto}">
-      <div style="flex:1;">
-        <b>${p.nama}</b><br>
-        Rp ${p.harga}<br>
-        <small>Stok: <b id="stok_${id}">${p.stok}</b></small>
+      <b>${p.nama}</b><br>
+      Rp ${p.harga}<br>
+      <small>Stok: ${p.stok}</small>
 
-        <div class="qty">
-          <button onclick="min('${id}')">-</button>
-          <span id="q_${id}">0</span>
-          <button onclick="add('${id}','${p.nama}',${p.harga},${p.stok})">+</button>
-        </div>
+      <div class="qty">
+        <button onclick="min('${id}')">-</button>
+        <span id="q_${id}">0</span>
+        <button onclick="add('${id}','${p.nama}',${p.harga},${p.stok})">+</button>
       </div>
     </div>`;
   });
@@ -263,9 +232,7 @@ async function loadCatalog(){
 window.add=(id,nama,harga,stok)=>{
   if(!cartData[id]) cartData[id]={nama,qty:0,harga,stok};
 
-  if(cartData[id].qty >= stok){
-    return alert("Stok tidak cukup");
-  }
+  if(cartData[id].qty>=stok) return alert("Stok habis");
 
   cartData[id].qty++;
   updateCart();
@@ -284,12 +251,12 @@ function updateCart(){
 
   for(let id in cartData){
     let i=cartData[id];
-    total+=i.qty*i.harga;
+    let sub=i.qty*i.harga;
+    total+=sub;
 
-    let el=document.getElementById("q_"+id);
-    if(el) el.innerText=i.qty;
+    document.getElementById("q_"+id).innerText=i.qty;
 
-    html+=`${i.nama} x${i.qty} = Rp ${i.qty*i.harga}<br>`;
+    html+=`- ${i.nama} x${i.qty} = Rp ${sub}<br>`;
   }
 
   html+=`<hr><b>Total: Rp ${total}</b>`;
@@ -298,31 +265,29 @@ function updateCart(){
 
 // CHECKOUT
 window.checkout=async()=>{
-  if(Object.keys(cartData).length===0){
-    return alert("Keranjang kosong");
-  }
-
-  let text="Pesanan:%0A";
+  let total=0;
+  let text="🛒 *EVI STORE*%0A%0A";
 
   for(let id in cartData){
     let i=cartData[id];
+    let sub=i.qty*i.harga;
+    total+=sub;
 
-    // update stok
-    const refDoc = doc(db,"produk",id);
+    const refDoc=doc(db,"produk",id);
     await updateDoc(refDoc,{
-      stok: i.stok - i.qty
+      stok:i.stok-i.qty
     });
 
-    text+=`${i.nama} x${i.qty}%0A`;
+    text+=`- ${i.nama} x${i.qty} = Rp ${sub}%0A`;
   }
 
-  let wa="6282285712293";
+  text+=`%0A💰 Total: Rp ${total}`;
+
+  window.open(`https://wa.me/6282285712293?text=${text}`);
 
   cartData={};
   updateCart();
   loadCatalog();
-
-  window.open(`https://wa.me/${wa}?text=${text}`);
 };
 </script>
 
